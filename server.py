@@ -312,3 +312,12 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
 
+@app.get("/admin/reset_password")
+def reset_admin_password(new_pw: str):
+    """Rota temporária para alterar a senha do admin (depois delete!)"""
+    con = get_db()
+    pw_hash = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+    con.execute("UPDATE users SET password=? WHERE user='admin'", (pw_hash,))
+    con.commit()
+    con.close()
+    return {"ok": True, "message": "Senha do admin atualizada com sucesso."}
