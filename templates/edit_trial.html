@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Trial — MACD Smart Pro</title>
+  <style>
+    body {
+      background-color: #0e1013;
+      color: #e5e7eb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background-color: #171a1d;
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px #00000060;
+      text-align: center;
+      width: 360px;
+    }
+    h2 {
+      color: #60a5fa;
+      margin-bottom: 20px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    input {
+      background-color: #1f2225;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      color: white;
+      font-size: 14px;
+      text-align: center;
+    }
+    button {
+      background-color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button:hover { background-color: #1d4ed8; }
+    .cancel {
+      background-color: #ef4444;
+    }
+    .cancel:hover {
+      background-color: #dc2626;
+    }
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Editar Trial</h2>
+    <p><b>Usuário:</b> {{ user.user }}</p>
+    <p>Dias restantes atuais: <b>{{ user.trial }}</b></p>
+
+    <form action="/edit_trial/{{ user.id }}" method="post">
+      <input type="number" name="trial_days" min="0" value="{{ user.trial }}" required>
+      <button type="submit">Salvar Alterações</button>
+    </form>
+
+    <a href="/dashboard">
+      <button class="cancel">Cancelar</button>
+    </a>
+  </div>
+</body>
+</html>

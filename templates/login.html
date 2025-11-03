@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login — MACD Smart Pro</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      background-color: #0e1013;
+      color: #e5e7eb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      background-color: #171a1d;
+      padding: 40px 60px;
+      border-radius: 16px;
+      box-shadow: 0 0 18px #00000060;
+      text-align: center;
+      width: 340px;
+    }
+    h2 {
+      margin-bottom: 24px;
+      color: #3b82f6;
+    }
+    input {
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background-color: #1f2225;
+      color: #fff;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      background-color: #2563eb;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    .msg {
+      margin-top: 10px;
+      color: #f87171;
+      font-size: 14px;
+    }
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>💹 Painel Admin</h2>
+
+    <form action="/login" method="post">
+      <input type="text" name="username" placeholder="Usuário" required>
+      <input type="password" name="password" placeholder="Senha" required>
+      <button type="submit">Entrar</button>
+    </form>
+
+    {% if msg %}
+      <p class="msg">{{ msg }}</p>
+    {% endif %}
+
+    <footer>MACD Smart Pro — © 2025</footer>
+  </div>
+</body>
+</html>

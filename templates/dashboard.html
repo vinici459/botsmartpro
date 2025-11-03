@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel Admin — MACD Smart Pro</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      background-color: #0e1013;
+      color: #e5e7eb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background-color: #171a1d;
+      padding: 12px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px #00000040;
+    }
+    .navbar h1 {
+      font-size: 20px;
+      color: #3b82f6;
+    }
+    .navbar a {
+      color: #f87171;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .container {
+      margin: 40px auto;
+      max-width: 1100px;
+      background-color: #171a1d;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 0 20px #00000050;
+    }
+    h2 {
+      margin-bottom: 15px;
+      color: #60a5fa;
+    }
+    form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    input, select {
+      background-color: #1f2225;
+      border: none;
+      border-radius: 8px;
+      padding: 8px;
+      color: white;
+      font-size: 14px;
+    }
+    button {
+      background-color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background-color: #1d4ed8; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #1f2225;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    th {
+      background-color: #2b2f33;
+      color: #93c5fd;
+    }
+    tr:nth-child(even) { background-color: #1b1d21; }
+    tr:hover { background-color: #26292d; }
+
+    .ativo { color: #22c55e; font-weight: bold; }
+    .desativado { color: #ef4444; font-weight: bold; }
+    .trial { font-weight: bold; }
+    .trial-status { font-style: italic; }
+
+    footer {
+      text-align: center;
+      color: #666;
+      margin-top: 25px;
+      font-size: 12px;
+    }
+    .summary {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: space-around;
+      box-shadow: 0 0 10px #00000030;
+    }
+    .summary span { font-weight: bold; }
+    .green { color: #22c55e; }
+    .yellow { color: #facc15; }
+    .red { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>💹 Painel MACD Smart Pro</h1>
+    <div>
+      Logado como: <b>{{ admin }}</b> |
+      <a href="/logout">Sair</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Usuários Cadastrados</h2>
+
+    <div class="summary" id="trial-summary">
+      <div><span class="green">0</span> Ativos</div>
+      <div><span class="yellow">0</span> Expirando</div>
+      <div><span class="red">0</span> Expirados</div>
+    </div>
+
+    <form action="/add_user" method="post">
+      <input type="text" name="username" placeholder="Novo usuário" required>
+      <input type="password" name="password" placeholder="Senha" required>
+      <input type="number" name="trial_days" min="1" value="7" title="Dias de teste">
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Usuário</th>
+        <th>Status</th>
+        <th>Lucro</th>
+        <th>Perfil</th>
+        <th>Trial (dias)</th>
+        <th>Status Trial</th>
+        <th>Criado em</th>
+        <th>Logins</th>
+        <th>Ações</th>
+      </tr>
+
+      {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.user }}</td>
+        <td class="{{ 'ativo' if u.enabled == 'Ativo' else 'desativado' }}">{{ u.enabled }}</td>
+        <td>{{ u.lucro }}</td>
+        <td>{{ u.perfil }}</td>
+        <td class="trial">{{ u.trial }}</td>
+        <td class="trial-status">—</td>
+        <td>{{ u.created }}</td>
+        <td>{{ u.logins }}</td>
+        <td>
+          <form action="/delete_user/{{ u.id }}" method="post" style="display:inline;">
+            <button style="background:#ef4444;">Excluir</button>
+          </form>
+
+          {% if u.enabled == 'Ativo' %}
+            <form action="/toggle_user/{{ u.id }}/0" method="post" style="display:inline;">
+              <button style="background:#f59e0b;">Desativar</button>
+            </form>
+          {% else %}
+            <form action="/toggle_user/{{ u.id }}/1" method="post" style="display:inline;">
+              <button style="background:#22c55e;">Ativar</button>
+            </form>
+          {% endif %}
+
+          <form action="/edit_trial/{{ u.id }}" method="get" style="display:inline;">
+            <button style="background:#3b82f6;">Editar Trial</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <footer>© 2025 — MACD Smart Pro Server</footer>
+
+  <!-- 🌈 SCRIPT: cores + contador dinâmico -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      let ativos = 0, expirando = 0, expirados = 0;
+
+      document.querySelectorAll("tr").forEach(row => {
+        const tdTrial = row.querySelector(".trial");
+        const tdStatus = row.querySelector(".trial-status");
+        if (!tdTrial || !tdStatus) return;
+
+        const dias = parseInt(tdTrial.textContent.trim());
+        if (isNaN(dias)) return;
+
+        if (dias > 5) {
+          tdTrial.style.color = "#22c55e";
+          tdStatus.textContent = "Ativo";
+          tdStatus.style.color = "#22c55e";
+          ativos++;
+        } else if (dias >= 2) {
+          tdTrial.style.color = "#facc15";
+          tdStatus.textContent = "Expirando";
+          tdStatus.style.color = "#facc15";
+          expirando++;
+        } else {
+          tdTrial.style.color = "#ef4444";
+          tdStatus.textContent = "Expirado";
+          tdStatus.style.color = "#ef4444";
+          expirados++;
+        }
+      });
+
+      document.querySelector("#trial-summary .green").textContent = ativos;
+      document.querySelector("#trial-summary .yellow").textContent = expirando;
+      document.querySelector("#trial-summary .red").textContent = expirados;
+    });
+  </script>
+</body>
+</html>
