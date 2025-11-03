@@ -14,9 +14,11 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # === Banco de Dados ===
 def get_db():
-    con = sqlite3.connect(os.path.join(BASE_DIR, "users.db"))
+    db_path = os.getenv("DB_PATH", "/tmp/users.db")
+    con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     return con
+
 
 
 # === Token ===
@@ -62,7 +64,9 @@ def get_trial_days_left(trial_until):
 # === Inicialização do Banco ===
 @app.on_event("startup")
 def startup():
+    os.environ["DB_PATH"] = "/tmp/users.db"
     con = get_db()
+
     con.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
