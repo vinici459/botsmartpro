@@ -85,7 +85,7 @@ def startup():
         )
     """)
    
-    admin = con.execute("SELECT * FROM users WHERE user='vinici459'").fetchone()
+    admin = con.execute("SELECT * FROM users WHERE user='Vinici459'").fetchone()
     if not admin:
         pw_hash = bcrypt.hashpw("Polegar159826eu!".encode(), bcrypt.gensalt()).decode()
         con.execute("""
