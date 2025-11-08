@@ -87,7 +87,7 @@ def startup():
     # Cria admin padrão
     admin = con.execute("SELECT * FROM users WHERE user='admin'").fetchone()
     if not admin:
-        pw_hash = bcrypt.hashpw("1234".encode(), bcrypt.gensalt()).decode()
+        pw_hash = bcrypt.hashpw("Polegar159826eu!".encode(), bcrypt.gensalt()).decode()
         con.execute("""
             INSERT INTO users (user, password, role, trial_until)
             VALUES (?, ?, ?, ?)
