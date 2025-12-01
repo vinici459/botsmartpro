@@ -5,3 +5,5 @@ bcrypt
 pyjwt
 python-multipart
 requests
+sqlalchemy
+psycopg2-binary
