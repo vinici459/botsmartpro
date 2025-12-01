@@ -15,7 +15,9 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from dotenv import load_dotenv
 
+load_dotenv()
 
 SECRET_KEY = "chave_super_segura"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,8 +34,8 @@ Base = declarative_base()
 app = FastAPI(title="Painel Admin MACD Smart Pro")
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 class User(Base):
@@ -88,9 +90,9 @@ def get_db_session():
         db.close()
 
 
-# =====================================================
-# 🚨 ADMIN FIXO — SOMENTE "Vinici459"
-# =====================================================
+# ============================
+# 🔐 ADMIN FIXO (apenas Vinici459)
+# ============================
 def require_admin(request: Request, db: Session = Depends(get_db_session)):
     token = request.cookies.get("token")
     data = decode_token(token) if token else None
@@ -100,12 +102,11 @@ def require_admin(request: Request, db: Session = Depends(get_db_session)):
 
     username = data.get("user")
 
-    # 🔥 APENAS ESTE USUÁRIO PODE ACESSAR
+    # Só esse usuário tem acesso ao painel
     if username != "Vinici459":
         raise HTTPException(status_code=303, headers={"Location": "/"})
 
     return data
-# =====================================================
 
 
 def require_login(request: Request):
@@ -160,38 +161,40 @@ def login_page(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.user == username).first()
-
     if not user:
         return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário não encontrado."})
 
-    # 🔥 O ÚNICO USUÁRIO COM PERMISSÃO
+    # 👇 Só o admin pode acessar o painel
     if username != "Vinici459":
         return templates.TemplateResponse("login.html", {"request": request, "msg": "Acesso permitido apenas ao administrador."})
 
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
         return templates.TemplateResponse("login.html", {"request": request, "msg": "Senha incorreta."})
-
+    if not user.enabled:
+        return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário desativado."})
+    if user.role != "admin" and user.trial_until:
+        if datetime.datetime.utcnow() > user.trial_until:
+            return templates.TemplateResponse("login.html", {"request": request, "msg": "Período de teste expirado."})
     now = datetime.datetime.utcnow()
     user.last_login = now
     user.login_count = (user.login_count or 0) + 1
     db.add(user)
     db.commit()
-
     token = create_token(username)
     resp = RedirectResponse(url="/dashboard", status_code=303)
     resp.set_cookie("token", token, httponly=True, max_age=21600)
     return resp
 
 
-# =====================================================
-# 🔥 ALTERAÇÃO PRINCIPAL: require_admin no dashboard
-# =====================================================
+# 👇 AQUI trocamos require_login → require_admin
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     users = db.query(User).all()
     users_data = []
     for u in users:
-        created_str = u.created_at.date().isoformat() if u.created_at else ""
+        created_str = ""
+        if u.created_at:
+            created_str = u.created_at.date().isoformat()
         users_data.append(
             {
                 "id": u.id,
@@ -214,14 +217,14 @@ def logout():
     return resp
 
 
-# =====================================================
-# 🔥 TODAS AS ROTAS ADMIN DEVEM USAR require_admin
-# =====================================================
-
 @app.post("/add_user")
-def add_user(username: str = Form(...), password: str = Form(...),
-             trial_days: int = Form(7), admin=Depends(require_admin),
-             db: Session = Depends(get_db_session)):
+def add_user(
+    username: str = Form(...),
+    password: str = Form(...),
+    trial_days: int = Form(7),
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db_session),
+):
     existing = db.query(User).filter(User.user == username).first()
     if existing:
         return RedirectResponse(url="/dashboard", status_code=303)
@@ -264,7 +267,64 @@ def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return RedirectResponse(url="/dashboard", status_code=303)
-    return templates.TemplateResponse("edit_trial.html", {"request": request, "user": user})
+    return HTMLResponse(
+        content=f"""
+    <html>
+      <head>
+        <meta charset='utf-8'>
+        <title>Editar Trial — {user.user}</title>
+        <style>
+          body {{
+            background-color: #0e1013;
+            color: #e5e7eb;
+            font-family: 'Segoe UI', Arial;
+            text-align: center;
+            padding-top: 100px;
+          }}
+          .card {{
+            background-color: #171a1d;
+            padding: 30px 50px;
+            display: inline-block;
+            border-radius: 16px;
+            box-shadow: 0 0 15px #00000070;
+          }}
+          input {{
+            background-color: #1f2225;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            width: 120px;
+            text-align: center;
+            margin-bottom: 15px;
+          }}
+          button {{
+            background-color: #2563eb;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+          }}
+          button:hover {{ background-color: #1d4ed8; }}
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h2>Editar período de trial</h2>
+          <p>Usuário: <b>{user.user}</b></p>
+          <form action="/update_trial/{user_id}" method="post">
+            <label>Dias de teste:</label><br>
+            <input type="number" name="trial_days" min="1" value="7" required><br>
+            <button type="submit">Salvar</button>
+          </form>
+          <p><a href="/dashboard" style="color:#60a5fa;">Voltar</a></p>
+        </div>
+      </body>
+    </html>
+    """
+    )
 
 
 @app.post("/update_trial/{user_id}")
@@ -277,9 +337,6 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
-# =====================================================
-# API ORIGINAL MANTIDA — NÃO ALTERAMOS
-# =====================================================
 @app.post("/api/auth")
 def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
     username = data.get("user")
@@ -293,7 +350,10 @@ def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
         return {"ok": False, "reason": "invalid_password"}
     remaining_days = 0
     if user.trial_until:
-        remaining_days = max((user.trial_until - datetime.datetime.utcnow()).days, 0)
+        try:
+            remaining_days = max((user.trial_until - datetime.datetime.utcnow()).days, 0)
+        except Exception:
+            remaining_days = 0
     return {
         "ok": True,
         "user": username,
@@ -341,38 +401,37 @@ def api_trade_report(data: dict = Body(...), db: Session = Depends(get_db_sessio
     if not username or not symbol:
         return {"ok": False, "reason": "missing_fields"}
     try:
-        valor = float(valor) if valor else 0.0
-    except:
+        valor = float(valor) if valor is not None else 0.0
+    except Exception:
         valor = 0.0
     try:
-        entry_price = float(entry_price) if entry_price else 0.0
-    except:
+        entry_price = float(entry_price) if entry_price is not None else 0.0
+    except Exception:
         entry_price = 0.0
     try:
-        exit_price = float(exit_price) if exit_price else 0.0
-    except:
+        exit_price = float(exit_price) if exit_price is not None else 0.0
+    except Exception:
         exit_price = 0.0
     try:
-        qty = float(qty) if qty else 0.0
-    except:
+        qty = float(qty) if qty is not None else 0.0
+    except Exception:
         qty = 0.0
     try:
-        retorno = float(retorno) if retorno else 0.0
-    except:
+        retorno = float(retorno) if retorno is not None else 0.0
+    except Exception:
         retorno = 0.0
     started_at = None
     ended_at = None
     try:
-        if entry_time:
+        if entry_time is not None:
             started_at = datetime.datetime.utcfromtimestamp(float(entry_time))
-    except:
-        pass
+    except Exception:
+        started_at = None
     try:
-        if exit_time:
+        if exit_time is not None:
             ended_at = datetime.datetime.utcfromtimestamp(float(exit_time))
-    except:
-        pass
-
+    except Exception:
+        ended_at = None
     trade = Trade(
         user=username,
         symbol=symbol,
@@ -427,6 +486,14 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_admi
     total_retorno = sum([(t.retorno or 0.0) for t in trades])
     total_em_usdt = sum([(t.valor or 0.0) * ((t.retorno or 0.0) / 100.0) for t in trades])
 
+    summary_html = f"""
+    <div style='margin-bottom:20px; text-align:center; font-size:16px;'>
+        <b>Total de Trades:</b> {total_trades} &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Lucro acumulado:</b> {total_retorno:.2f}% &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Lucro em USDT:</b> {total_em_usdt:.2f}
+    </div>
+    """
+
     rows_html = ""
     for t in trades:
         started_at = t.started_at.isoformat() if t.started_at else ""
@@ -454,10 +521,60 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_admi
       <head>
         <meta charset='utf-8'>
         <title>Trades — {username}</title>
+        <style>
+          body {{
+            background-color: #0e1013;
+            color: #e5e7eb;
+            font-family: 'Segoe UI', Arial;
+            margin: 0;
+            padding: 20px;
+          }}
+          h2 {{
+            text-align: center;
+            margin-bottom: 8px;
+          }}
+          table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }}
+          th, td {{
+            border: 1px solid #111827;
+            padding: 8px;
+            font-size: 13px;
+            text-align: center;
+          }}
+          th {{
+            background-color: #1f2933;
+          }}
+          tr:nth-child(even) {{
+            background-color: #15171b;
+          }}
+          a {{
+            color: #60a5fa;
+          }}
+        </style>
       </head>
       <body>
         <h2>Histórico de trades — {username}</h2>
-        <table border="1">{rows_html}</table>
+        <p style="text-align:center;"><a href="/dashboard">Voltar ao painel</a></p>
+        {summary_html}
+        <table>
+          <tr>
+            <th>Moeda</th>
+            <th>Perfil</th>
+            <th>Valor (USDT)</th>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Quantidade</th>
+            <th>Retorno</th>
+            <th>Motivo</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Registrado em</th>
+          </tr>
+          {rows_html}
+        </table>
       </body>
     </html>
     """
