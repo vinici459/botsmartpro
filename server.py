@@ -15,8 +15,6 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from dotenv import load_dotenv
-load_dotenv()
 
 
 SECRET_KEY = "chave_super_segura"
@@ -35,6 +33,7 @@ app = FastAPI(title="Painel Admin MACD Smart Pro")
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
 
 
 class User(Base):
