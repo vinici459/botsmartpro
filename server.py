@@ -433,10 +433,23 @@ def api_users_summary():
 def user_trades_page(request: Request, username: str, admin=Depends(require_login)):
     con = get_db()
     trades = con.execute(
-        "SELECT symbol, perfil, valor, entry_price, exit_price, qty, retorno, reason, started_at, ended_at, created_at FROM trades WHERE user=? ORDER BY id DESC LIMIT 100",
+        "SELECT symbol, perfil, valor, entry_price, exit_price, qty, retorno, reason, started_at, ended_at, created_at FROM trades WHERE user=? ORDER BY id DESC",
         (username,),
     ).fetchall()
     con.close()
+
+    total_trades = len(trades)
+    total_retorno = sum([t["retorno"] or 0 for t in trades])
+    total_em_usdt = sum([(t["valor"] or 0) * ((t["retorno"] or 0) / 100) for t in trades])
+
+    summary_html = f"""
+    <div style='margin-bottom:20px; text-align:center; font-size:16px;'>
+        <b>Total de Trades:</b> {total_trades} &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Lucro acumulado:</b> {total_retorno:.2f}% &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Lucro em USDT:</b> {total_em_usdt:.2f}
+    </div>
+    """
+
     rows_html = ""
     for t in trades:
         rows_html += f"""
@@ -454,6 +467,7 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_logi
           <td>{t['created_at'] or ''}</td>
         </tr>
         """
+
     return HTMLResponse(
         content=f"""
     <html>
@@ -470,11 +484,12 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_logi
           }}
           h2 {{
             text-align: center;
+            margin-bottom: 8px;
           }}
           table {{
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
           }}
           th, td {{
             border: 1px solid #111827;
@@ -495,7 +510,8 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_logi
       </head>
       <body>
         <h2>Histórico de trades — {username}</h2>
-        <p><a href="/dashboard">Voltar ao painel</a></p>
+        <p style="text-align:center;"><a href="/dashboard">Voltar ao painel</a></p>
+        {summary_html}
         <table>
           <tr>
             <th>Moeda</th>
@@ -516,6 +532,7 @@ def user_trades_page(request: Request, username: str, admin=Depends(require_logi
     </html>
     """
     )
+
 
 
 if __name__ == "__main__":
