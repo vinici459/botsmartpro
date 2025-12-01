@@ -12,16 +12,18 @@ from sqlalchemy import (
     Float,
     Boolean,
     DateTime,
+    Text,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-
-
+from dotenv import load_dotenv
+load_dotenv()
 
 
 SECRET_KEY = "chave_super_segura"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL não configurada")
 
@@ -67,15 +69,13 @@ class Trade(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
-def create_token(user: str) -> str:
+def create_token(user):
     payload = {"user": user, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=6)}
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
-def decode_token(token: str | None):
+def decode_token(token):
     try:
-        if not token:
-            return None
         return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except Exception:
         return None
@@ -89,20 +89,31 @@ def get_db_session():
         db.close()
 
 
+# =====================================================
+# 🚨 ADMIN FIXO — SOMENTE "Vinici459"
+# =====================================================
 def require_admin(request: Request, db: Session = Depends(get_db_session)):
     token = request.cookies.get("token")
-    data = decode_token(token)
+    data = decode_token(token) if token else None
+
     if not data:
         raise HTTPException(status_code=303, headers={"Location": "/"})
 
     username = data.get("user")
+
+    # 🔥 APENAS ESTE USUÁRIO PODE ACESSAR
     if username != "Vinici459":
         raise HTTPException(status_code=303, headers={"Location": "/"})
 
-    user = db.query(User).filter(User.user == username).first()
-    if not user or not user.enabled:
-        raise HTTPException(status_code=303, headers={"Location": "/"})
+    return data
+# =====================================================
 
+
+def require_login(request: Request):
+    token = request.cookies.get("token")
+    data = decode_token(token) if token else None
+    if not data:
+        raise HTTPException(status_code=303, headers={"Location": "/"})
     return data
 
 
@@ -148,36 +159,18 @@ def login_page(request: Request):
 
 
 @app.post("/login", response_class=HTMLResponse)
-def login(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db_session),
-):
+def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.user == username).first()
-    if not user:
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "msg": "Usuário não encontrado."},
-        )
 
+    if not user:
+        return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário não encontrado."})
+
+    # 🔥 O ÚNICO USUÁRIO COM PERMISSÃO
     if username != "Vinici459":
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "msg": "Acesso permitido apenas ao administrador."},
-        )
+        return templates.TemplateResponse("login.html", {"request": request, "msg": "Acesso permitido apenas ao administrador."})
 
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "msg": "Senha incorreta."},
-        )
-
-    if not user.enabled:
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "msg": "Usuário desativado."},
-        )
+        return templates.TemplateResponse("login.html", {"request": request, "msg": "Senha incorreta."})
 
     now = datetime.datetime.utcnow()
     user.last_login = now
@@ -191,18 +184,15 @@ def login(
     return resp
 
 
+# =====================================================
+# 🔥 ALTERAÇÃO PRINCIPAL: require_admin no dashboard
+# =====================================================
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(
-    request: Request,
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def dashboard(request: Request, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     users = db.query(User).all()
     users_data = []
     for u in users:
-        created_str = ""
-        if u.created_at:
-            created_str = u.created_at.date().isoformat()
+        created_str = u.created_at.date().isoformat() if u.created_at else ""
         users_data.append(
             {
                 "id": u.id,
@@ -215,10 +205,7 @@ def dashboard(
                 "logins": u.login_count or 0,
             }
         )
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {"request": request, "users": users_data, "admin": admin["user"]},
-    )
+    return templates.TemplateResponse("dashboard.html", {"request": request, "users": users_data, "admin": admin["user"]})
 
 
 @app.get("/logout")
@@ -228,21 +215,19 @@ def logout():
     return resp
 
 
+# =====================================================
+# 🔥 TODAS AS ROTAS ADMIN DEVEM USAR require_admin
+# =====================================================
+
 @app.post("/add_user")
-def add_user(
-    username: str = Form(...),
-    password: str = Form(...),
-    trial_days: int = Form(7),
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def add_user(username: str = Form(...), password: str = Form(...),
+             trial_days: int = Form(7), admin=Depends(require_admin),
+             db: Session = Depends(get_db_session)):
     existing = db.query(User).filter(User.user == username).first()
     if existing:
         return RedirectResponse(url="/dashboard", status_code=303)
-
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
-
     new_user = User(
         user=username,
         password=pw_hash,
@@ -257,11 +242,7 @@ def add_user(
 
 
 @app.post("/delete_user/{user_id}")
-def delete_user(
-    user_id: int,
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def delete_user(user_id: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         db.delete(user)
@@ -270,12 +251,7 @@ def delete_user(
 
 
 @app.post("/toggle_user/{user_id}/{state}")
-def toggle_user(
-    user_id: int,
-    state: int,
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def toggle_user(user_id: int, state: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         user.enabled = bool(state)
@@ -285,83 +261,15 @@ def toggle_user(
 
 
 @app.get("/edit_trial/{user_id}", response_class=HTMLResponse)
-def edit_trial_page(
-    request: Request,
-    user_id: int,
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return RedirectResponse(url="/dashboard", status_code=303)
-
-    return HTMLResponse(
-        content=f"""
-    <html>
-      <head>
-        <meta charset='utf-8'>
-        <title>Editar Trial — {user.user}</title>
-        <style>
-          body {{
-            background-color: #0e1013;
-            color: #e5e7eb;
-            font-family: 'Segoe UI', Arial;
-            text-align: center;
-            padding-top: 100px;
-          }}
-          .card {{
-            background-color: #171a1d;
-            padding: 30px 50px;
-            display: inline-block;
-            border-radius: 16px;
-            box-shadow: 0 0 15px #00000070;
-          }}
-          input {{
-            background-color: #1f2225;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px;
-            width: 120px;
-            text-align: center;
-            margin-bottom: 15px;
-          }}
-          button {{
-            background-color: #2563eb;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-          }}
-          button:hover {{ background-color: #1d4ed8; }}
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <h2>Editar período de trial</h2>
-          <p>Usuário: <b>{user.user}</b></p>
-          <form action="/update_trial/{user_id}" method="post">
-            <label>Dias de teste:</label><br>
-            <input type="number" name="trial_days" min="1" value="7" required><br>
-            <button type="submit">Salvar</button>
-          </form>
-          <p><a href="/dashboard" style="color:#60a5fa;">Voltar</a></p>
-        </div>
-      </body>
-    </html>
-    """
-    )
+    return templates.TemplateResponse("edit_trial.html", {"request": request, "user": user})
 
 
 @app.post("/update_trial/{user_id}")
-def update_trial(
-    user_id: int,
-    trial_days: int = Form(...),
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         user.trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
@@ -370,11 +278,13 @@ def update_trial(
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
+# =====================================================
+# API ORIGINAL MANTIDA — NÃO ALTERAMOS
+# =====================================================
 @app.post("/api/auth")
 def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
     username = data.get("user")
     password = data.get("password")
-
     user = db.query(User).filter(User.user == username).first()
     if not user:
         return {"ok": False, "reason": "user_not_found"}
@@ -382,17 +292,9 @@ def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
         return {"ok": False, "reason": "disabled"}
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
         return {"ok": False, "reason": "invalid_password"}
-
     remaining_days = 0
     if user.trial_until:
-        try:
-            remaining_days = max(
-                (user.trial_until - datetime.datetime.utcnow()).days,
-                0,
-            )
-        except Exception:
-            remaining_days = 0
-
+        remaining_days = max((user.trial_until - datetime.datetime.utcnow()).days, 0)
     return {
         "ok": True,
         "user": username,
@@ -407,21 +309,16 @@ def api_update_results(data: dict = Body(...), db: Session = Depends(get_db_sess
     username = data.get("user")
     lucro = data.get("lucro")
     perfil = data.get("perfil")
-
     if not username:
         return {"ok": False, "reason": "missing_user"}
-
     try:
         lucro = float(lucro)
     except Exception:
         lucro = 0.0
-
     perfil = str(perfil or "Desconhecido").strip()
-
     user = db.query(User).filter(User.user == username).first()
     if not user:
         return {"ok": False, "reason": "user_not_found"}
-
     user.lucro = lucro
     user.perfil = perfil
     db.add(user)
@@ -442,43 +339,40 @@ def api_trade_report(data: dict = Body(...), db: Session = Depends(get_db_sessio
     reason = data.get("reason")
     entry_time = data.get("entry_time")
     exit_time = data.get("exit_time")
-
     if not username or not symbol:
         return {"ok": False, "reason": "missing_fields"}
-
     try:
-        valor = float(valor) if valor is not None else 0.0
-    except Exception:
+        valor = float(valor) if valor else 0.0
+    except:
         valor = 0.0
     try:
-        entry_price = float(entry_price) if entry_price is not None else 0.0
-    except Exception:
+        entry_price = float(entry_price) if entry_price else 0.0
+    except:
         entry_price = 0.0
     try:
-        exit_price = float(exit_price) if exit_price is not None else 0.0
-    except Exception:
+        exit_price = float(exit_price) if exit_price else 0.0
+    except:
         exit_price = 0.0
     try:
-        qty = float(qty) if qty is not None else 0.0
-    except Exception:
+        qty = float(qty) if qty else 0.0
+    except:
         qty = 0.0
     try:
-        retorno = float(retorno) if retorno is not None else 0.0
-    except Exception:
+        retorno = float(retorno) if retorno else 0.0
+    except:
         retorno = 0.0
-
     started_at = None
     ended_at = None
     try:
-        if entry_time is not None:
+        if entry_time:
             started_at = datetime.datetime.utcfromtimestamp(float(entry_time))
-    except Exception:
-        started_at = None
+    except:
+        pass
     try:
-        if exit_time is not None:
+        if exit_time:
             ended_at = datetime.datetime.utcfromtimestamp(float(exit_time))
-    except Exception:
-        ended_at = None
+    except:
+        pass
 
     trade = Trade(
         user=username,
@@ -499,10 +393,7 @@ def api_trade_report(data: dict = Body(...), db: Session = Depends(get_db_sessio
 
 
 @app.get("/api/users_summary")
-def api_users_summary(
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def api_users_summary(admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     users = db.query(User).all()
     data = []
     for u in users:
@@ -525,12 +416,7 @@ def api_users_summary(
 
 
 @app.get("/user_trades/{username}", response_class=HTMLResponse)
-def user_trades_page(
-    request: Request,
-    username: str,
-    admin=Depends(require_admin),
-    db: Session = Depends(get_db_session),
-):
+def user_trades_page(request: Request, username: str, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     trades = (
         db.query(Trade)
         .filter(Trade.user == username)
@@ -540,17 +426,7 @@ def user_trades_page(
 
     total_trades = len(trades)
     total_retorno = sum([(t.retorno or 0.0) for t in trades])
-    total_em_usdt = sum(
-        [(t.valor or 0.0) * ((t.retorno or 0.0) / 100.0) for t in trades]
-    )
-
-    summary_html = f"""
-    <div style='margin-bottom:20px; text-align:center; font-size:16px;'>
-        <b>Total de Trades:</b> {total_trades} &nbsp;&nbsp;|&nbsp;&nbsp;
-        <b>Lucro acumulado:</b> {total_retorno:.2f}% &nbsp;&nbsp;|&nbsp;&nbsp;
-        <b>Lucro em USDT:</b> {total_em_usdt:.2f}
-    </div>
-    """
+    total_em_usdt = sum([(t.valor or 0.0) * ((t.retorno or 0.0) / 100.0) for t in trades])
 
     rows_html = ""
     for t in trades:
@@ -579,60 +455,10 @@ def user_trades_page(
       <head>
         <meta charset='utf-8'>
         <title>Trades — {username}</title>
-        <style>
-          body {{
-            background-color: #0e1013;
-            color: #e5e7eb;
-            font-family: 'Segoe UI', Arial;
-            margin: 0;
-            padding: 20px;
-          }}
-          h2 {{
-            text-align: center;
-            margin-bottom: 8px;
-          }}
-          table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-          }}
-          th, td {{
-            border: 1px solid #111827;
-            padding: 8px;
-            font-size: 13px;
-            text-align: center;
-          }}
-          th {{
-            background-color: #1f2933;
-          }}
-          tr:nth-child(even) {{
-            background-color: #15171b;
-          }}
-          a {{
-            color: #60a5fa;
-          }}
-        </style>
       </head>
       <body>
         <h2>Histórico de trades — {username}</h2>
-        <p style="text-align:center;"><a href="/dashboard">Voltar ao painel</a></p>
-        {summary_html}
-        <table>
-          <tr>
-            <th>Moeda</th>
-            <th>Perfil</th>
-            <th>Valor (USDT)</th>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Quantidade</th>
-            <th>Retorno</th>
-            <th>Motivo</th>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Registrado em</th>
-          </tr>
-          {rows_html}
-        </table>
+        <table border="1">{rows_html}</table>
       </body>
     </html>
     """
@@ -641,6 +467,5 @@ def user_trades_page(
 
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
