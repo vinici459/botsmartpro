@@ -152,10 +152,10 @@ def startup():
     finally:
         db.close()
 
-
-@app.get("/", response_class=HTMLResponse)
-def login_page(request: Request):
+@app.get("/login", response_class=HTMLResponse)
+def login_redirect(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "msg": ""})
+
 
 
 @app.post("/login", response_class=HTMLResponse)
