@@ -122,6 +122,17 @@
     .top-actions form input[type="number"] {
       width: 70px;
     }
+
+    /* 🔍 CAMPO DE BUSCA */
+    #search-user {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: none;
+      background-color: #111827;
+      color: #e5e7eb;
+      font-size: 13px;
+      width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -152,6 +163,10 @@
         <input type="number" name="trial_days" min="1" value="7">
         <button type="submit">Adicionar usuário</button>
       </form>
+
+      <!-- 🔍 CAMPO DE BUSCA DE CONTAS -->
+      <input type="text" id="search-user" placeholder="🔍 Buscar usuário...">
+
       <div style="font-size:13px;color:#9ca3af;">
         Atualização automática de lucro e perfil a cada 10 segundos
       </div>
@@ -208,6 +223,21 @@
 
   <footer>© 2025 — MACD Smart Pro Server</footer>
 
+  <!-- 🔍 FILTRO DE BUSCA -->
+  <script>
+    document.getElementById("search-user").addEventListener("keyup", function () {
+      let filter = this.value.toLowerCase();
+      let rows = document.querySelectorAll("#users-table tr");
+
+      rows.forEach((row, i) => {
+        if (i === 0) return; // pula o header
+        let txt = row.innerText.toLowerCase();
+        row.style.display = txt.includes(filter) ? "" : "none";
+      });
+    });
+  </script>
+
+  <!-- 🔄 REFRESH AUTOMÁTICO (original) -->
   <script>
     function recalcTrialSummary() {
       var ativos = 0;
@@ -215,18 +245,13 @@
       var expirados = 0;
       var rows = document.querySelectorAll("#users-table tr");
       rows.forEach(function(row, index) {
-        if (index === 0) {
-          return;
-        }
+        if (index === 0) return;
         var tdTrial = row.querySelector(".trial");
         var tdStatus = row.querySelector(".trial-status");
-        if (!tdTrial || !tdStatus) {
-          return;
-        }
+        if (!tdTrial || !tdStatus) return;
         var dias = parseInt(tdTrial.textContent || "0");
-        if (isNaN(dias)) {
-          dias = 0;
-        }
+        if (isNaN(dias)) dias = 0;
+
         if (dias > 7) {
           tdTrial.style.color = "#22c55e";
           tdStatus.textContent = "Ativo";
@@ -244,10 +269,9 @@
           expirados++;
         }
       });
+
       var summary = document.querySelector("#trial-summary");
-      if (!summary) {
-        return;
-      }
+      if (!summary) return;
       summary.querySelector(".green").textContent = ativos;
       summary.querySelector(".yellow").textContent = expirando;
       summary.querySelector(".red").textContent = expirados;
@@ -256,44 +280,45 @@
     async function refreshUsers() {
       try {
         var response = await fetch("/api/users_summary");
-        if (!response.ok) {
-          return;
-        }
+        if (!response.ok) return;
         var data = await response.json();
-        if (!data || !data.users) {
-          return;
-        }
+        if (!data || !data.users) return;
         data.users.forEach(function(u) {
           var row = document.querySelector('tr[data-username="' + u.user + '"]');
-          if (!row) {
-            return;
-          }
+          if (!row) return;
+
           var statusCell = row.querySelector(".status");
           if (statusCell) {
             statusCell.textContent = u.enabled ? "Ativo" : "Desativado";
             statusCell.className = "status " + (u.enabled ? "ativo" : "desativado");
           }
+
           var lucroCell = row.querySelector(".lucro");
           if (lucroCell) {
             lucroCell.textContent = u.lucro_fmt;
           }
+
           var perfilCell = row.querySelector(".perfil");
           if (perfilCell) {
             perfilCell.textContent = u.perfil || "Desconhecido";
           }
+
           var trialCell = row.querySelector(".trial");
           if (trialCell) {
             trialCell.textContent = u.trial;
           }
+
           var createdCell = row.querySelector(".created");
           if (createdCell && u.created) {
             createdCell.textContent = (u.created.split("T")[0] || u.created);
           }
+
           var loginsCell = row.querySelector(".logins");
           if (loginsCell) {
             loginsCell.textContent = u.logins;
           }
         });
+
         recalcTrialSummary();
       } catch (e) {
       }
@@ -305,5 +330,6 @@
       setInterval(refreshUsers, 10000);
     });
   </script>
+
 </body>
 </html>
