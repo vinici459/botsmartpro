@@ -37,6 +37,20 @@ app = FastAPI(title="Painel Admin MACD Smart Pro")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+from sqlalchemy import text
+
+def ensure_active_session_column():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS active_session VARCHAR;
+            """))
+            conn.commit()
+            print("[DB] Coluna active_session verificada/criada.")
+    except Exception as e:
+        print("[DB] Erro ao garantir coluna active_session:", e)
+
 
 
 class User(Base):
@@ -135,7 +149,10 @@ def get_trial_days_left(trial_until):
 
 @app.on_event("startup")
 def startup():
+    ensure_active_session_column()  # 👈 PRIMEIRA COISA, ANTES DE TUDO
+
     Base.metadata.create_all(bind=engine)
+
     db: Session = SessionLocal()
     try:
         admin = db.query(User).filter(User.user == "Vinici459").first()
@@ -153,6 +170,7 @@ def startup():
             db.commit()
     finally:
         db.close()
+
 
 
 @app.get("/", response_class=HTMLResponse)
