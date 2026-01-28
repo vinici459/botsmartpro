@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Form, Depends, HTTPException, Body
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import uuid
 
 import bcrypt, jwt, datetime, os
 from sqlalchemy import (
@@ -51,6 +52,7 @@ class User(Base):
     login_count = Column(Integer, default=0)
     trial_until = Column(DateTime, nullable=True)
     role = Column(String, default="user")
+    active_session = Column(String, nullable=True)
 
 
 class Trade(Base):
@@ -337,30 +339,53 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
+
+
 @app.post("/api/auth")
 def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
-    username = data.get("user")
-    password = data.get("password")
+    username = (data.get("user") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    if not username or not password:
+        return {"ok": False, "reason": "missing_fields"}
+
     user = db.query(User).filter(User.user == username).first()
+
     if not user:
         return {"ok": False, "reason": "user_not_found"}
+
     if not user.enabled:
         return {"ok": False, "reason": "disabled"}
+
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
         return {"ok": False, "reason": "invalid_password"}
-    remaining_days = 0
+
+    # valida trial/licença
     if user.trial_until:
         try:
-            remaining_days = max((user.trial_until - datetime.datetime.utcnow()).days, 0)
+            if datetime.datetime.utcnow() > user.trial_until:
+                return {"ok": False, "reason": "trial_expired"}
         except Exception:
-            remaining_days = 0
+            pass
+
+    # 🔐 gera nova sessão (derruba qualquer login anterior)
+    session_id = str(uuid.uuid4())
+    user.active_session = session_id
+
+    user.last_login = datetime.datetime.utcnow()
+    user.login_count = (user.login_count or 0) + 1
+
+    db.add(user)
+    db.commit()
+
     return {
         "ok": True,
         "user": username,
+        "session_id": session_id,   # 👈 BOT VAI USAR ISSO NO HEARTBEAT
         "perfil": user.perfil,
         "lucro": user.lucro,
-        "trial_remaining_days": remaining_days,
     }
+
 
 
 @app.post("/api/update_results")
@@ -382,6 +407,34 @@ def api_update_results(data: dict = Body(...), db: Session = Depends(get_db_sess
     user.perfil = perfil
     db.add(user)
     db.commit()
+    return {"ok": True}
+
+@app.post("/api/validate_session")
+def api_validate_session(data: dict = Body(...), db: Session = Depends(get_db_session)):
+    username = data.get("user")
+    session_id = data.get("session_id")
+
+    if not username or not session_id:
+        return {"ok": False, "reason": "missing_fields"}
+
+    user = db.query(User).filter(User.user == username).first()
+    if not user:
+        return {"ok": False, "reason": "user_not_found"}
+
+    if not user.enabled:
+        return {"ok": False, "reason": "disabled"}
+
+    if user.trial_until:
+        try:
+            if datetime.datetime.utcnow() > user.trial_until:
+                return {"ok": False, "reason": "trial_expired"}
+        except Exception:
+            pass
+
+    # 🔥 BLOQUEIO DE MULTI-LOGIN
+    if not user.active_session or user.active_session != session_id:
+        return {"ok": False, "reason": "session_invalid"}
+
     return {"ok": True}
 
 
