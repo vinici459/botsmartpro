@@ -431,28 +431,29 @@ def api_update_results(data: dict = Body(...), db: Session = Depends(get_db_sess
 def api_validate_session(data: dict = Body(...), db: Session = Depends(get_db_session)):
     username = data.get("user")
     session_id = data.get("session_id")
-
-    if not username or not session_id:
+    
+    if not username:
         return {"ok": False, "reason": "missing_fields"}
 
     user = db.query(User).filter(User.user == username).first()
+
     if not user:
         return {"ok": False, "reason": "user_not_found"}
-
+   
     if not user.enabled:
         return {"ok": False, "reason": "disabled"}
-
+    
     if user.trial_until:
         try:
             if datetime.datetime.utcnow() > user.trial_until:
                 return {"ok": False, "reason": "trial_expired"}
         except Exception:
             pass
-
-    # 🔥 BLOQUEIO DE MULTI-LOGIN
-    if not user.active_session or user.active_session != session_id:
-        return {"ok": False, "reason": "session_invalid"}
-
+   
+    if session_id:
+        if not user.active_session or user.active_session != session_id:
+            return {"ok": False, "reason": "session_invalid"}
+    
     return {"ok": True}
 
 
