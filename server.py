@@ -323,7 +323,7 @@ def signup_submit(
     cpf: str = Form(...),
     user: str = Form(...),
     password: str = Form(...),
-    confirm_password: str = Form(...),  # 🔐 NOVO CAMPO
+    confirm_password: str = Form(...),  # 🔐 confirmação de senha
     db: Session = Depends(get_db_session),
 ):
     if not _signup_key_ok(key):
@@ -332,36 +332,69 @@ def signup_submit(
     username = (user or "").strip()
     name = (full_name or "").strip()
     cpf_clean = _only_digits(cpf)
-    
-    if password != confirm_password:
-        return HTMLResponse(
-            "<p style='font-family:Arial;padding:20px;color:red;'>As senhas não conferem. Volte e digite novamente.</p>",
-            status_code=400
-        )
 
+    def render_form(erro_msg=""):
+        # 🔁 mesma tela de cadastro, sem página branca
+        html = f"""<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Cadastro — Bot Smart Pro</title>
+  <style>
+    body {{ background:#0b1220; color:#e5e7eb; font-family: Arial; }}
+    .card {{ max-width:520px; margin:40px auto; padding:22px; background:#111827; border-radius:14px; }}
+    label {{ display:block; margin-top:12px; }}
+    input {{ width:100%; padding:12px; margin-top:6px; border-radius:10px; border:1px solid #334155; background:#0f172a; color:#e5e7eb; }}
+    button {{ width:100%; padding:12px; margin-top:16px; border:none; border-radius:10px; background:#22c55e; font-weight:bold; }}
+    .erro {{ background:#7f1d1d; color:#fecaca; padding:12px; border-radius:10px; margin-bottom:12px; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Cadastro — Bot Smart Pro</h2>
+    {"<div class='erro'>" + erro_msg + "</div>" if erro_msg else ""}
+    <form action="/cadastro?key={key}" method="post">
+      <label>Nome completo *</label>
+      <input name="full_name" value="{name}" required>
+
+      <label>CPF *</label>
+      <input name="cpf" value="{cpf}" required>
+
+      <label>Usuário *</label>
+      <input name="user" value="{username}" required>
+
+      <label>Senha *</label>
+      <input name="password" type="password" required>
+
+      <label>Confirmar Senha *</label>
+      <input name="confirm_password" type="password" required>
+
+      <button type="submit">Criar conta</button>
+    </form>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(html)
+
+    # 🔐 valida campos
     if not name or not username or not password:
-        return HTMLResponse("<p>Campos obrigatórios.</p>", status_code=400)
+        return render_form("Preencha todos os campos obrigatórios.")
 
+    # 🔐 valida confirmação de senha
+    if password != confirm_password:
+        return render_form("As senhas não conferem. Volte e digite novamente.")
+
+    # 🔐 valida CPF
     if not validar_cpf(cpf_clean):
-        return HTMLResponse(
-        f"""
-        <html><body style='background:#0b1220;color:#e5e7eb;font-family:Arial'>
-        <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border-radius:14px;'>
-        <h3 style='color:#ef4444;'>Erro no cadastro</h3>
-        <p>CPF inválido (dígitos verificadores não conferem).</p>
-        <a href='/cadastro?key={key}' style='color:#22c55e;'>Voltar ao cadastro</a>
-        </div></body></html>
-        """,
-        status_code=400
-    )
+        return render_form("CPF inválido (dígitos verificadores não conferem).")
 
-    # Bloqueia duplicado de CPF (mesmo se desativado)
+    # 🔐 bloqueia CPF duplicado
     if db.query(User).filter(User.cpf == cpf_clean).first():
-        return HTMLResponse("<p>CPF já cadastrado. Se sua conta estiver desativada, fale com o suporte.</p>", status_code=409)
+        return render_form("CPF já cadastrado. Se sua conta estiver desativada, fale com o suporte.")
 
-    # Bloqueia duplicado de username
+    # 🔐 bloqueia usuário duplicado
     if db.query(User).filter(User.user == username).first():
-        return HTMLResponse("<p>Usuário já existe. Escolha outro.</p>", status_code=409)
+        return render_form("Usuário já existe. Escolha outro.")
 
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
@@ -382,11 +415,11 @@ def signup_submit(
 
     return HTMLResponse(
         f"""<html><body style='background:#0b1220;color:#e5e7eb;font-family:Arial'>
-        <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border:1px solid #1f2937;border-radius:14px;'>
+        <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border-radius:14px;'>
         <h2>Conta criada ✅</h2>
         <p>Usuário: <b>{username}</b></p>
         <p>Período de teste até: <b>{trial_until.strftime('%d/%m/%Y %H:%M')} (UTC)</b></p>
-        <p style='color:#94a3b8;font-size:12px;'>Agora você já pode fazer login no bot.</p>
+        <p>Agora você já pode fazer login no bot.</p>
         </div></body></html>"""
     )
 
