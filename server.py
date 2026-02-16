@@ -143,13 +143,13 @@ def require_admin(request: Request, db: Session = Depends(get_db_session)):
 
     # 🔐 Se não estiver logado → vai para login admin secreto
     if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/admin"})
+        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
 
     username = data.get("user")
 
     # 🔐 Só o admin acessa o painel
     if username != "Vinici459":
-        raise HTTPException(status_code=303, headers={"Location": "/admin"})
+        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
 
     return data
 
@@ -160,7 +160,7 @@ def require_login(request: Request):
 
     # 🔐 Qualquer usuário não logado vai para /admin (não mais para /)
     if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/admin"})
+        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
 
     return data
 
@@ -477,14 +477,9 @@ def root():
     # Redireciona visitantes para a página de cadastro público
     return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
 
-@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin-smartpro-459-panel", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "msg": ""})
-
-@app.get("/")
-def root():
-    # Redireciona visitantes para o cadastro público
-    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -541,7 +536,7 @@ def dashboard(request: Request, admin=Depends(require_admin), db: Session = Depe
 
 @app.get("/logout")
 def logout():
-    resp = RedirectResponse(url="/")
+    resp = RedirectResponse(url="/admin-smartpro-459-panel")
     resp.delete_cookie("token")
     return resp
 
