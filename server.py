@@ -141,14 +141,15 @@ def require_admin(request: Request, db: Session = Depends(get_db_session)):
     token = request.cookies.get("token")
     data = decode_token(token) if token else None
 
+    # 🔐 Se não estiver logado → vai para login admin secreto
     if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/"})
+        raise HTTPException(status_code=303, headers={"Location": "/admin"})
 
     username = data.get("user")
 
-    # Só esse usuário tem acesso ao painel
+    # 🔐 Só o admin acessa o painel
     if username != "Vinici459":
-        raise HTTPException(status_code=303, headers={"Location": "/"})
+        raise HTTPException(status_code=303, headers={"Location": "/admin"})
 
     return data
 
@@ -156,10 +157,12 @@ def require_admin(request: Request, db: Session = Depends(get_db_session)):
 def require_login(request: Request):
     token = request.cookies.get("token")
     data = decode_token(token) if token else None
-    if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/"})
-    return data
 
+    # 🔐 Qualquer usuário não logado vai para /admin (não mais para /)
+    if not data:
+        raise HTTPException(status_code=303, headers={"Location": "/admin"})
+
+    return data
 
 def get_trial_days_left(trial_until):
     if not trial_until:
@@ -467,9 +470,21 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
 
     return {"ok": True, "user": username, **_trial_info(new_user)}
 
-@app.get("/", response_class=HTMLResponse)
+
+
+@app.get("/")
+def root():
+    # Redireciona visitantes para a página de cadastro público
+    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
+
+@app.get("/admin", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "msg": ""})
+
+@app.get("/")
+def root():
+    # Redireciona visitantes para o cadastro público
+    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
 
 
 @app.post("/login", response_class=HTMLResponse)
