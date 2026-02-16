@@ -306,6 +306,8 @@ def signup_form(key: str | None = None):
       <input name="user" required maxlength="50" placeholder="ex: vinici459">
       <label>Senha *</label>
       <input name="password" required minlength="4" type="password" placeholder="••••••">
+      <label>Confirmar Senha *</label>
+      <input name="confirm_password" required minlength="4" type="password" placeholder="••••••">
       <button type="submit">Criar conta</button>
     </form>
   </div>
@@ -321,6 +323,7 @@ def signup_submit(
     cpf: str = Form(...),
     user: str = Form(...),
     password: str = Form(...),
+    confirm_password: str = Form(...),  # 🔐 NOVO CAMPO
     db: Session = Depends(get_db_session),
 ):
     if not _signup_key_ok(key):
@@ -329,12 +332,28 @@ def signup_submit(
     username = (user or "").strip()
     name = (full_name or "").strip()
     cpf_clean = _only_digits(cpf)
+    
+    if password != confirm_password:
+        return HTMLResponse(
+            "<p style='font-family:Arial;padding:20px;color:red;'>As senhas não conferem. Volte e digite novamente.</p>",
+            status_code=400
+        )
 
     if not name or not username or not password:
         return HTMLResponse("<p>Campos obrigatórios.</p>", status_code=400)
 
     if not validar_cpf(cpf_clean):
-        return HTMLResponse("<p>CPF inválido (dígitos verificadores não conferem).</p>", status_code=400)
+        return HTMLResponse(
+        f"""
+        <html><body style='background:#0b1220;color:#e5e7eb;font-family:Arial'>
+        <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border-radius:14px;'>
+        <h3 style='color:#ef4444;'>Erro no cadastro</h3>
+        <p>CPF inválido (dígitos verificadores não conferem).</p>
+        <a href='/cadastro?key={key}' style='color:#22c55e;'>Voltar ao cadastro</a>
+        </div></body></html>
+        """,
+        status_code=400
+    )
 
     # Bloqueia duplicado de CPF (mesmo se desativado)
     if db.query(User).filter(User.cpf == cpf_clean).first():
