@@ -52,11 +52,39 @@ def ensure_active_session_column():
         print("[DB] Erro ao garantir coluna active_session:", e)
 
 
+def ensure_cadastro_columns():
+    """Garante colunas/índices necessários para o cadastro público (CPF e Nome)."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS cpf VARCHAR;
+            """))
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS full_name VARCHAR;
+            """))
+            # índice único para CPF (não falha se já existir)
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_cpf ON users (cpf);"))
+            except Exception:
+                pass
+            conn.commit()
+            print("[DB] Colunas cpf/full_name verificadas/criadas.")
+    except Exception as e:
+        print("[DB] Erro ao garantir colunas cpf/full_name:", e)
+
+
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     user = Column(String, unique=True, index=True, nullable=False)
+
+    # Cadastro público (CPF + Nome)
+    cpf = Column(String, unique=True, index=True, nullable=True)
+    full_name = Column(String, nullable=True)
+
     password = Column(String, nullable=False)
     enabled = Column(Boolean, default=True)
     lucro = Column(Float, default=0.0)
@@ -153,6 +181,9 @@ def startup():
 
     Base.metadata.create_all(bind=engine)
 
+    # Colunas extras para cadastro público (seguro rodar sempre)
+    ensure_cadastro_columns()
+
     db: Session = SessionLocal()
     try:
         admin = db.query(User).filter(User.user == "Vinici459").first()
@@ -172,6 +203,217 @@ def startup():
         db.close()
 
 
+
+
+def _only_digits(s: str) -> str:
+    return "".join(ch for ch in (s or "") if ch.isdigit())
+
+
+def validar_cpf(cpf: str) -> bool:
+    """Validação padrão de CPF (dígitos verificadores)."""
+    cpf = _only_digits(cpf)
+    if len(cpf) != 11:
+        return False
+    if cpf == cpf[0] * 11:
+        return False
+
+    # 1º dígito
+    s1 = sum(int(d) * w for d, w in zip(cpf[:9], range(10, 1, -1)))
+    r1 = (s1 * 10) % 11
+    d1 = "0" if r1 == 10 else str(r1)
+
+    # 2º dígito
+    s2 = sum(int(d) * w for d, w in zip(cpf[:9] + d1, range(11, 1, -1)))
+    r2 = (s2 * 10) % 11
+    d2 = "0" if r2 == 10 else str(r2)
+
+    return cpf[-2:] == d1 + d2
+
+
+def _trial_info(user: "User") -> dict:
+    until = getattr(user, "trial_until", None)
+    if not until:
+        return {
+            "trial_until": None,
+            "trial_remaining_seconds": None,
+            "trial_remaining_days": None,
+            "trial_expiring": False,
+        }
+
+    try:
+        now = datetime.datetime.utcnow()
+        remaining = max(0.0, float((until - now).total_seconds()))
+        days = int(remaining // 86400)
+        expiring = remaining <= (3 * 86400)
+        return {
+            "trial_until": until.isoformat(),
+            "trial_remaining_seconds": int(remaining),
+            "trial_remaining_days": days,
+            "trial_expiring": bool(expiring),
+        }
+    except Exception:
+        return {
+            "trial_until": None,
+            "trial_remaining_seconds": None,
+            "trial_remaining_days": None,
+            "trial_expiring": False,
+        }
+
+
+# ==========================
+# CADASTRO PÚBLICO (COM LINK)
+# ==========================
+PUBLIC_SIGNUP_KEY = os.getenv("PUBLIC_SIGNUP_KEY", "").strip()  # defina no Railway
+
+
+def _signup_key_ok(key: str | None) -> bool:
+    if not PUBLIC_SIGNUP_KEY:
+        return False
+    return (key or "").strip() == PUBLIC_SIGNUP_KEY
+
+
+@app.get("/cadastro", response_class=HTMLResponse)
+def signup_form(key: str | None = None):
+    if not _signup_key_ok(key):
+        return HTMLResponse("<h3>404</h3>", status_code=404)
+
+    html = """<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadastro — Bot Smart Pro</title>
+  <style>
+    body { background:#0b1220; color:#e5e7eb; font-family: Arial, sans-serif; }
+    .card { max-width:520px; margin:40px auto; padding:22px; background:#111827; border:1px solid #1f2937; border-radius:14px; }
+    h2 { margin:0 0 12px 0; }
+    label { display:block; margin-top:12px; color:#cbd5e1; font-size:14px; }
+    input { width:100%; padding:12px; margin-top:6px; border-radius:10px; border:1px solid #334155; background:#0f172a; color:#e5e7eb; }
+    button { width:100%; padding:12px; margin-top:16px; border:none; border-radius:10px; background:#22c55e; color:#052e16; font-weight:700; cursor:pointer; }
+    .muted { margin-top:10px; color:#94a3b8; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Cadastro — Bot Smart Pro</h2>
+    <p class="muted">Cadastro com período de teste automático de 15 dias.</p>
+    <form action="/cadastro?key=__KEY__" method="post">
+      <label>Nome completo *</label>
+      <input name="full_name" required maxlength="120" placeholder="Seu nome">
+      <label>CPF *</label>
+      <input name="cpf" required maxlength="14" placeholder="000.000.000-00">
+      <label>Usuário *</label>
+      <input name="user" required maxlength="50" placeholder="ex: vinici459">
+      <label>Senha *</label>
+      <input name="password" required minlength="4" type="password" placeholder="••••••">
+      <button type="submit">Criar conta</button>
+    </form>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(html.replace("__KEY__", key or ""))
+
+
+@app.post("/cadastro", response_class=HTMLResponse)
+def signup_submit(
+    key: str | None = None,
+    full_name: str = Form(...),
+    cpf: str = Form(...),
+    user: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    if not _signup_key_ok(key):
+        return HTMLResponse("<h3>404</h3>", status_code=404)
+
+    username = (user or "").strip()
+    name = (full_name or "").strip()
+    cpf_clean = _only_digits(cpf)
+
+    if not name or not username or not password:
+        return HTMLResponse("<p>Campos obrigatórios.</p>", status_code=400)
+
+    if not validar_cpf(cpf_clean):
+        return HTMLResponse("<p>CPF inválido (dígitos verificadores não conferem).</p>", status_code=400)
+
+    # Bloqueia duplicado de CPF (mesmo se desativado)
+    if db.query(User).filter(User.cpf == cpf_clean).first():
+        return HTMLResponse("<p>CPF já cadastrado. Se sua conta estiver desativada, fale com o suporte.</p>", status_code=409)
+
+    # Bloqueia duplicado de username
+    if db.query(User).filter(User.user == username).first():
+        return HTMLResponse("<p>Usuário já existe. Escolha outro.</p>", status_code=409)
+
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
+
+    new_user = User(
+        user=username,
+        password=hashed,
+        enabled=True,
+        role="user",
+        perfil="Desconhecido",
+        lucro=0.0,
+        trial_until=trial_until,
+        cpf=cpf_clean,
+        full_name=name,
+    )
+    db.add(new_user)
+    db.commit()
+
+    return HTMLResponse(
+        f"""<html><body style='background:#0b1220;color:#e5e7eb;font-family:Arial'>
+        <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border:1px solid #1f2937;border-radius:14px;'>
+        <h2>Conta criada ✅</h2>
+        <p>Usuário: <b>{username}</b></p>
+        <p>Período de teste até: <b>{trial_until.strftime('%d/%m/%Y %H:%M')} (UTC)</b></p>
+        <p style='color:#94a3b8;font-size:12px;'>Agora você já pode fazer login no bot.</p>
+        </div></body></html>"""
+    )
+
+
+@app.post("/api/register")
+def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
+    """Cadastro via API (mesma regra do /cadastro)."""
+    key = (data.get("key") or "").strip()
+    if not _signup_key_ok(key):
+        return {"ok": False, "reason": "invalid_key"}
+
+    username = (data.get("user") or "").strip()
+    password = (data.get("password") or "").strip()
+    name = (data.get("full_name") or "").strip()
+    cpf_clean = _only_digits(data.get("cpf") or "")
+
+    if not username or not password or not name or not cpf_clean:
+        return {"ok": False, "reason": "missing_fields"}
+
+    if not validar_cpf(cpf_clean):
+        return {"ok": False, "reason": "invalid_cpf"}
+
+    if db.query(User).filter(User.cpf == cpf_clean).first():
+        return {"ok": False, "reason": "cpf_exists"}
+
+    if db.query(User).filter(User.user == username).first():
+        return {"ok": False, "reason": "user_exists"}
+
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
+
+    new_user = User(
+        user=username,
+        password=hashed,
+        enabled=True,
+        role="user",
+        perfil="Desconhecido",
+        lucro=0.0,
+        trial_until=trial_until,
+        cpf=cpf_clean,
+        full_name=name,
+    )
+    db.add(new_user)
+    db.commit()
+
+    return {"ok": True, "user": username, **_trial_info(new_user)}
 
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -402,6 +644,7 @@ def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
         "session_id": session_id,   # 👈 BOT VAI USAR ISSO NO HEARTBEAT
         "perfil": user.perfil,
         "lucro": user.lucro,
+        **_trial_info(user),
     }
 
 
@@ -426,6 +669,35 @@ def api_update_results(data: dict = Body(...), db: Session = Depends(get_db_sess
     db.add(user)
     db.commit()
     return {"ok": True}
+
+
+@app.post("/api/account_status")
+def api_account_status(data: dict = Body(...), db: Session = Depends(get_db_session)):
+    username = (data.get("user") or "").strip()
+    session_id = (data.get("session_id") or "").strip()
+
+    if not username:
+        return {"ok": False, "reason": "missing_user"}
+
+    user = db.query(User).filter(User.user == username).first()
+    if not user:
+        return {"ok": False, "reason": "user_not_found"}
+    if not user.enabled:
+        return {"ok": False, "reason": "disabled"}
+
+    if session_id:
+        if not user.active_session or user.active_session != session_id:
+            return {"ok": False, "reason": "session_invalid"}
+
+    # trial check
+    if user.trial_until:
+        try:
+            if datetime.datetime.utcnow() > user.trial_until:
+                return {"ok": False, "reason": "trial_expired", **_trial_info(user)}
+        except Exception:
+            pass
+
+    return {"ok": True, **_trial_info(user)}
 
 @app.post("/api/validate_session")
 def api_validate_session(data: dict = Body(...), db: Session = Depends(get_db_session)):
