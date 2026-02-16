@@ -739,27 +739,74 @@ def api_account_status(data: dict = Body(...), db: Session = Depends(get_db_sess
     session_id = (data.get("session_id") or "").strip()
 
     if not username:
-        return {"ok": False, "reason": "missing_user"}
+        return {
+            "ok": False,
+            "valid": False,
+            "reason": "missing_user",
+            "trial_remaining_seconds": 0,
+            "trial_remaining_days": 0,
+            "trial_expiring": False,
+        }
 
     user = db.query(User).filter(User.user == username).first()
-    if not user:
-        return {"ok": False, "reason": "user_not_found"}
-    if not user.enabled:
-        return {"ok": False, "reason": "disabled"}
 
+    if not user:
+        return {
+            "ok": False,
+            "valid": False,
+            "reason": "user_not_found",
+            "trial_remaining_seconds": 0,
+            "trial_remaining_days": 0,
+            "trial_expiring": False,
+        }
+
+    # Conta desativada pelo admin
+    if not user.enabled:
+        trial_data = _trial_info(user)
+        return {
+            "ok": False,
+            "valid": False,
+            "reason": "disabled",
+            **trial_data,
+        }
+
+    # 🔐 Validação de sessão única (anti multi-dispositivo)
     if session_id:
         if not user.active_session or user.active_session != session_id:
-            return {"ok": False, "reason": "session_invalid"}
+            trial_data = _trial_info(user)
+            return {
+                "ok": False,
+                "valid": False,
+                "reason": "session_invalid",
+                **trial_data,
+            }
 
-    # trial check
+    # 📅 Verificação do período de teste/licença
+    trial_data = _trial_info(user)
+
     if user.trial_until:
         try:
-            if datetime.datetime.utcnow() > user.trial_until:
-                return {"ok": False, "reason": "trial_expired", **_trial_info(user)}
-        except Exception:
-            pass
+            now = datetime.datetime.utcnow()
 
-    return {"ok": True, **_trial_info(user)}
+            # Expirou completamente
+            if now > user.trial_until:
+                return {
+                    "ok": False,
+                    "valid": False,
+                    "reason": "trial_expired",
+                    **trial_data,
+                }
+
+        except Exception as e:
+            print("[ACCOUNT_STATUS] erro ao verificar trial:", e)
+
+    # ✅ Licença válida (fluxo normal do bot)
+    return {
+        "ok": True,
+        "valid": True,
+        "reason": "active",
+        **trial_data,
+    }
 
 @app.post("/api/validate_session")
 def api_validate_session(data: dict = Body(...), db: Session = Depends(get_db_session)):
@@ -991,3 +1038,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
+    
