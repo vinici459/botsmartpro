@@ -599,7 +599,7 @@ def add_user(
 ):
     existing = db.query(User).filter(User.user == username).first()
     if existing:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
     new_user = User(
@@ -612,7 +612,7 @@ def add_user(
     )
     db.add(new_user)
     db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
 
 
 @app.post("/delete_user/{user_id}")
@@ -621,7 +621,7 @@ def delete_user(user_id: int, admin=Depends(require_admin), db: Session = Depend
     if user:
         db.delete(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
 
 
 @app.post("/toggle_user/{user_id}/{state}")
@@ -631,14 +631,14 @@ def toggle_user(user_id: int, state: int, admin=Depends(require_admin), db: Sess
         user.enabled = bool(state)
         db.add(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
 
 
 @app.get("/edit_trial/{user_id}", response_class=HTMLResponse)
 def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
     return HTMLResponse(
         content=f"""
     <html>
@@ -691,7 +691,7 @@ def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin)
             <input type="number" name="trial_days" min="1" value="7" required><br>
             <button type="submit">Salvar</button>
           </form>
-          <p><a href="/dashboard" style="color:#60a5fa;">Voltar</a></p>
+          <p><a href="/dashboard?key=macdsmartpro_admin" style="color:#60a5fa;">Voltar</a></p>
         </div>
       </body>
     </html>
@@ -706,7 +706,7 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
         user.trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
         db.add(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
 
 
 
