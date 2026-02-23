@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SECRET_KEY = "chave_super_segura"
+ADMIN_SECRET_KEY = "macdsmartpro_admin"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -53,7 +54,7 @@ def ensure_active_session_column():
 
 
 def ensure_cadastro_columns():
-    """Garante colunas/índices necessários para o cadastro público (CPF e Nome)."""
+    """Garante colunas/índices necessários para o cadastro público (CPF, Nome e Telefone)."""
     try:
         with engine.connect() as conn:
             conn.execute(text("""
@@ -64,15 +65,21 @@ def ensure_cadastro_columns():
                 ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS full_name VARCHAR;
             """))
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS phone VARCHAR;
+            """))  # 👈 NOVA COLUNA TELEFONE (ESSENCIAL)
+
             # índice único para CPF (não falha se já existir)
             try:
                 conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_cpf ON users (cpf);"))
             except Exception:
                 pass
+
             conn.commit()
-            print("[DB] Colunas cpf/full_name verificadas/criadas.")
+            print("[DB] Colunas cpf/full_name/phone verificadas/criadas.")
     except Exception as e:
-        print("[DB] Erro ao garantir colunas cpf/full_name:", e)
+        print("[DB] Erro ao garantir colunas cpf/full_name/phone:", e)
 
 
 
@@ -81,9 +88,10 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     user = Column(String, unique=True, index=True, nullable=False)
 
-    # Cadastro público (CPF + Nome)
+    # Cadastro público (CPF + Nome + Telefone)
     cpf = Column(String, unique=True, index=True, nullable=True)
     full_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)  # 👈 ADICIONE ESTA LINHA
 
     password = Column(String, nullable=False)
     enabled = Column(Boolean, default=True)
@@ -300,19 +308,30 @@ def signup_form(key: str | None = None):
   <div class="card">
     <h2>Cadastro — Bot Smart Pro</h2>
     <p class="muted">Cadastro com período de teste automático de 15 dias.</p>
+
     <form action="/cadastro?key=__KEY__" method="post">
+      
       <label>Nome completo *</label>
-      <input name="full_name" required maxlength="120" placeholder="Seu nome">
+      <input name="full_name" required maxlength="120" placeholder="Seu nome completo">
+
       <label>CPF *</label>
       <input name="cpf" required maxlength="14" placeholder="000.000.000-00">
+
+      <label>Telefone / WhatsApp *</label>
+      <input name="phone" required maxlength="20" placeholder="(11) 99999-9999">
+
       <label>Usuário *</label>
       <input name="user" required maxlength="50" placeholder="ex: Username">
+
       <label>Senha *</label>
       <input name="password" required minlength="4" type="password" placeholder="••••••">
+
       <label>Confirmar Senha *</label>
       <input name="confirm_password" required minlength="4" type="password" placeholder="••••••">
+
       <button type="submit">Criar conta</button>
     </form>
+
   </div>
 </body>
 </html>"""
@@ -324,6 +343,7 @@ def signup_submit(
     key: str | None = None,
     full_name: str = Form(...),
     cpf: str = Form(...),
+    phone: str = Form(...),  # 👈 NOVO CAMPO TELEFONE
     user: str = Form(...),
     password: str = Form(...),
     confirm_password: str = Form(...),  # 🔐 confirmação de senha
@@ -334,6 +354,7 @@ def signup_submit(
 
     username = (user or "").strip()
     name = (full_name or "").strip()
+    phone_clean = (phone or "").strip()  # 👈 LIMPA TELEFONE
     cpf_clean = _only_digits(cpf)
 
     def render_form(erro_msg=""):
@@ -363,6 +384,9 @@ def signup_submit(
       <label>CPF *</label>
       <input name="cpf" value="{cpf}" required>
 
+      <label>Telefone / WhatsApp *</label>
+      <input name="phone" value="{phone_clean}" required>
+
       <label>Usuário *</label>
       <input name="user" value="{username}" required>
 
@@ -379,9 +403,9 @@ def signup_submit(
 </html>"""
         return HTMLResponse(html)
 
-    # 🔐 valida campos
-    if not name or not username or not password:
-        return render_form("Preencha todos os campos obrigatórios.")
+    # 🔐 valida campos obrigatórios
+    if not name or not username or not password or not phone_clean:
+        return render_form("Preencha todos os campos obrigatórios, incluindo o telefone.")
 
     # 🔐 valida confirmação de senha
     if password != confirm_password:
@@ -402,6 +426,7 @@ def signup_submit(
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
 
+    # 👇 AGORA SALVA O TELEFONE NO BANCO
     new_user = User(
         user=username,
         password=hashed,
@@ -412,7 +437,9 @@ def signup_submit(
         trial_until=trial_until,
         cpf=cpf_clean,
         full_name=name,
+        phone=phone_clean,  # 👈 ESSENCIAL (controle de cliente real)
     )
+
     db.add(new_user)
     db.commit()
 
@@ -421,11 +448,11 @@ def signup_submit(
         <div style='max-width:520px;margin:40px auto;padding:22px;background:#111827;border-radius:14px;'>
         <h2>Conta criada ✅</h2>
         <p>Usuário: <b>{username}</b></p>
+        <p>Telefone: <b>{phone_clean}</b></p>
         <p>Período de teste até: <b>{trial_until.strftime('%d/%m/%Y %H:%M')} (UTC)</b></p>
         <p>Agora você já pode fazer login no bot.</p>
         </div></body></html>"""
     )
-
 
 @app.post("/api/register")
 def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
@@ -510,19 +537,32 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     return resp
 
 
-# 👇 AQUI trocamos require_login → require_admin
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
+def dashboard(
+    request: Request,
+    key: str | None = None,  # 👈 NOVO
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db_session),
+):
+    # 🔒 BLOQUEIO POR CHAVE SECRETA
+    if key != ADMIN_SECRET_KEY:
+        return HTMLResponse("<h3>404</h3>", status_code=404)
+
     users = db.query(User).all()
     users_data = []
+
     for u in users:
         created_str = ""
         if u.created_at:
             created_str = u.created_at.date().isoformat()
+
         users_data.append(
             {
                 "id": u.id,
                 "user": u.user,
+                "full_name": u.full_name or "",
+                "cpf": u.cpf or "",
+                "phone": getattr(u, "phone", "") or "",
                 "enabled": "Ativo" if u.enabled else "Desativado",
                 "lucro": f"{(u.lucro or 0.0):.2f}%",
                 "perfil": u.perfil or "Desconhecido",
@@ -531,7 +571,15 @@ def dashboard(request: Request, admin=Depends(require_admin), db: Session = Depe
                 "logins": u.login_count or 0,
             }
         )
-    return templates.TemplateResponse("dashboard.html", {"request": request, "users": users_data, "admin": admin["user"]})
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "users": users_data,
+            "admin": admin["user"]
+        }
+    )
 
 
 @app.get("/logout")
@@ -926,108 +974,132 @@ def api_users_summary(admin=Depends(require_admin), db: Session = Depends(get_db
     return {"users": data}
 
 
-@app.get("/user_trades/{username}", response_class=HTMLResponse)
-def user_trades_page(request: Request, username: str, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
-    trades = (
-        db.query(Trade)
-        .filter(Trade.user == username)
-        .order_by(Trade.id.desc())
-        .all()
-    )
+@app.get("/user_info/{username}", response_class=HTMLResponse)
+def user_info_page(request: Request, username: str, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
+    user = db.query(User).filter(User.user == username).first()
 
-    total_trades = len(trades)
-    total_retorno = sum([(t.retorno or 0.0) for t in trades])
-    total_em_usdt = sum([(t.valor or 0.0) * ((t.retorno or 0.0) / 100.0) for t in trades])
+    if not user:
+        return RedirectResponse(url="/dashboard", status_code=303)
 
-    summary_html = f"""
-    <div style='margin-bottom:20px; text-align:center; font-size:16px;'>
-        <b>Total de Trades:</b> {total_trades} &nbsp;&nbsp;|&nbsp;&nbsp;
-        <b>Lucro acumulado:</b> {total_retorno:.2f}% &nbsp;&nbsp;|&nbsp;&nbsp;
-        <b>Lucro em USDT:</b> {total_em_usdt:.2f}
-    </div>
-    """
-
-    rows_html = ""
-    for t in trades:
-        started_at = t.started_at.isoformat() if t.started_at else ""
-        ended_at = t.ended_at.isoformat() if t.ended_at else ""
-        created_at = t.created_at.isoformat() if t.created_at else ""
-        rows_html += f"""
-        <tr>
-          <td>{t.symbol}</td>
-          <td>{t.perfil or ''}</td>
-          <td>{(t.valor or 0.0):.2f}</td>
-          <td>{(t.entry_price or 0.0):.4f}</td>
-          <td>{(t.exit_price or 0.0):.4f}</td>
-          <td>{(t.qty or 0.0):.6f}</td>
-          <td>{(t.retorno or 0.0):.2f}%</td>
-          <td>{t.reason or ''}</td>
-          <td>{started_at}</td>
-          <td>{ended_at}</td>
-          <td>{created_at}</td>
-        </tr>
-        """
+    created_at = user.created_at.isoformat() if user.created_at else ""
+    last_login = user.last_login.isoformat() if user.last_login else "Nunca"
+    trial_days = get_trial_days_left(user.trial_until)
 
     return HTMLResponse(
         content=f"""
     <html>
       <head>
         <meta charset='utf-8'>
-        <title>Trades — {username}</title>
+        <title>Informações do Cliente — {username}</title>
         <style>
           body {{
             background-color: #0e1013;
             color: #e5e7eb;
             font-family: 'Segoe UI', Arial;
             margin: 0;
-            padding: 20px;
+            padding: 30px;
+          }}
+          .card {{
+            max-width: 700px;
+            margin: auto;
+            background: #171a1d;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 15px #00000060;
           }}
           h2 {{
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 25px;
           }}
-          table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+          .row {{
+            margin-bottom: 12px;
+            font-size: 16px;
           }}
-          th, td {{
-            border: 1px solid #111827;
-            padding: 8px;
-            font-size: 13px;
-            text-align: center;
+          .label {{
+            color: #9ca3af;
+            font-weight: bold;
           }}
-          th {{
-            background-color: #1f2933;
+          .value {{
+            color: #e5e7eb;
           }}
-          tr:nth-child(even) {{
-            background-color: #15171b;
+          .btn {{
+            display: inline-block;
+            margin-top: 25px;
+            padding: 10px 18px;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
           }}
-          a {{
-            color: #60a5fa;
+          .btn:hover {{
+            background: #1d4ed8;
           }}
         </style>
       </head>
       <body>
-        <h2>Histórico de trades — {username}</h2>
-        <p style="text-align:center;"><a href="/dashboard">Voltar ao painel</a></p>
-        {summary_html}
-        <table>
-          <tr>
-            <th>Moeda</th>
-            <th>Perfil</th>
-            <th>Valor (USDT)</th>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Quantidade</th>
-            <th>Retorno</th>
-            <th>Motivo</th>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Registrado em</th>
-          </tr>
-          {rows_html}
-        </table>
+        <div class="card">
+          <h2>Ficha do Cliente</h2>
+
+          <div class="row">
+            <span class="label">Usuário:</span>
+            <span class="value">{user.user}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Nome completo:</span>
+            <span class="value">{user.full_name or "Não informado"}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">CPF:</span>
+            <span class="value">{user.cpf or "Não informado"}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Telefone / WhatsApp:</span>
+            <span class="value">{getattr(user, "phone", "Não informado")}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Status:</span>
+            <span class="value">{"Ativo" if user.enabled else "Desativado"}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Perfil do Bot:</span>
+            <span class="value">{user.perfil or "Desconhecido"}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Lucro registrado:</span>
+            <span class="value">{(user.lucro or 0.0):.2f}%</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Dias de Trial restantes:</span>
+            <span class="value">{trial_days}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Data de criação:</span>
+            <span class="value">{created_at}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Último login:</span>
+            <span class="value">{last_login}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Total de logins:</span>
+            <span class="value">{user.login_count or 0}</span>
+          </div>
+
+          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
+          &nbsp;
+          <a class="btn" href="/user_trades/{username}">📊 Ver Trades</a>
+        </div>
       </body>
     </html>
     """

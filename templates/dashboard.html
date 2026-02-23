@@ -197,9 +197,23 @@
         <td class="created">{{ u.created }}</td>
         <td class="logins">{{ u.logins }}</td>
         <td class="actions">
-          <form class="inline" action="/delete_user/{{ u.id }}" method="post">
-            <button class="btn-delete" type="submit">Excluir</button>
+
+          <!-- 👤 BOTÃO INFO DO CLIENTE (NOVO - CONTROLE TOTAL) -->
+          <form class="inline" action="/user_info/{{ u.user }}" method="get">
+            <button type="submit" style="background:#6366f1;">Info</button>
           </form>
+
+          <!-- 📊 TRADES (JÁ EXISTENTE) -->
+          <form class="inline" action="/user_trades/{{ u.user }}" method="get">
+            <button class="btn-trades" type="submit">Trades</button>
+          </form>
+
+          <!-- ✏ EDITAR TRIAL -->
+          <form class="inline" action="/edit_trial/{{ u.id }}" method="get">
+            <button class="btn-trial" type="submit">Editar Trial</button>
+          </form>
+
+          <!-- 🔒 ATIVAR / DESATIVAR -->
           {% if u.enabled == 'Ativo' %}
           <form class="inline" action="/toggle_user/{{ u.id }}/0" method="post">
             <button class="btn-disable" type="submit">Desativar</button>
@@ -209,12 +223,12 @@
             <button class="btn-enable" type="submit">Ativar</button>
           </form>
           {% endif %}
-          <form class="inline" action="/edit_trial/{{ u.id }}" method="get">
-            <button class="btn-trial" type="submit">Editar Trial</button>
+
+          <!-- ❌ EXCLUIR -->
+          <form class="inline" action="/delete_user/{{ u.id }}" method="post">
+            <button class="btn-delete" type="submit">Excluir</button>
           </form>
-          <form class="inline" action="/user_trades/{{ u.user }}" method="get">
-            <button class="btn-trades" type="submit">Trades</button>
-          </form>
+
         </td>
       </tr>
       {% endfor %}
