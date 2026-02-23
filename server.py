@@ -1116,7 +1116,123 @@ def user_info_page(
     </html>
     """
     )
+@app.get("/user_trades/{username}", response_class=HTMLResponse)
+def user_trades_page(
+    request: Request,
+    username: str,
+    key: str | None = None,  # 🔐 proteção por chave
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db_session)
+):
+    # 🔒 Proteção igual ao dashboard
+    if key != ADMIN_SECRET_KEY:
+        return HTMLResponse("<h3>404</h3>", status_code=404)
 
+    trades = (
+        db.query(Trade)
+        .filter(Trade.user == username)
+        .order_by(Trade.id.desc())
+        .all()
+    )
+
+    total_trades = len(trades)
+    total_retorno = sum([(t.retorno or 0.0) for t in trades])
+    total_em_usdt = sum([(t.valor or 0.0) * ((t.retorno or 0.0) / 100.0) for t in trades])
+
+    rows_html = ""
+    for t in trades:
+        started_at = t.started_at.isoformat() if t.started_at else ""
+        ended_at = t.ended_at.isoformat() if t.ended_at else ""
+        created_at = t.created_at.isoformat() if t.created_at else ""
+
+        rows_html += f"""
+        <tr>
+          <td>{t.symbol}</td>
+          <td>{t.perfil or ''}</td>
+          <td>{(t.valor or 0.0):.2f}</td>
+          <td>{(t.entry_price or 0.0):.4f}</td>
+          <td>{(t.exit_price or 0.0):.4f}</td>
+          <td>{(t.qty or 0.0):.6f}</td>
+          <td>{(t.retorno or 0.0):.2f}%</td>
+          <td>{t.reason or ''}</td>
+          <td>{started_at}</td>
+          <td>{ended_at}</td>
+          <td>{created_at}</td>
+        </tr>
+        """
+
+    return HTMLResponse(
+        content=f"""
+    <html>
+      <head>
+        <meta charset='utf-8'>
+        <title>Trades — {username}</title>
+        <style>
+          body {{
+            background-color: #0e1013;
+            color: #e5e7eb;
+            font-family: 'Segoe UI', Arial;
+            margin: 0;
+            padding: 20px;
+          }}
+          h2 {{ text-align: center; }}
+          table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }}
+          th, td {{
+            border: 1px solid #111827;
+            padding: 8px;
+            font-size: 13px;
+            text-align: center;
+          }}
+          th {{ background-color: #1f2933; }}
+          tr:nth-child(even) {{ background-color: #15171b; }}
+          .btn {{
+            display: inline-block;
+            margin-bottom: 15px;
+            padding: 10px 18px;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+          }}
+        </style>
+      </head>
+      <body>
+        <h2>Histórico de Trades — {username}</h2>
+        <div style="text-align:center;">
+          <a class="btn" href="/dashboard?key={ADMIN_SECRET_KEY}">⬅ Voltar ao Painel</a>
+        </div>
+
+        <div style="text-align:center; margin-top:10px;">
+          <b>Total de Trades:</b> {total_trades} |
+          <b>Lucro acumulado:</b> {total_retorno:.2f}% |
+          <b>Lucro em USDT:</b> {total_em_usdt:.2f}
+        </div>
+
+        <table>
+          <tr>
+            <th>Moeda</th>
+            <th>Perfil</th>
+            <th>Valor</th>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Qtd</th>
+            <th>Retorno</th>
+            <th>Motivo</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Registrado</th>
+          </tr>
+          {rows_html}
+        </table>
+      </body>
+    </html>
+    """
+    )
 
 if __name__ == "__main__":
     import uvicorn
