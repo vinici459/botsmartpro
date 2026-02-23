@@ -975,11 +975,23 @@ def api_users_summary(admin=Depends(require_admin), db: Session = Depends(get_db
 
 
 @app.get("/user_info/{username}", response_class=HTMLResponse)
-def user_info_page(request: Request, username: str, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
+def user_info_page(
+    request: Request,
+    username: str,
+    key: str | None = None,  # 🔐 chave secreta do admin
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db_session)
+):
+    # 🔒 Proteção por chave (igual ao dashboard)
+    if key != ADMIN_SECRET_KEY:
+        return HTMLResponse("<h3>404</h3>", status_code=404)
+
+    # 🔥 LINHA CRÍTICA QUE FALTAVA (obrigatória)
     user = db.query(User).filter(User.user == username).first()
 
+    # Se usuário não existir, volta ao painel seguro
     if not user:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
 
     created_at = user.created_at.isoformat() if user.created_at else ""
     last_login = user.last_login.isoformat() if user.last_login else "Nunca"
@@ -1096,9 +1108,9 @@ def user_info_page(request: Request, username: str, admin=Depends(require_admin)
             <span class="value">{user.login_count or 0}</span>
           </div>
 
-          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
+          <a class="btn" href="/dashboard?key={ADMIN_SECRET_KEY}">⬅ Voltar ao Painel</a>
           &nbsp;
-          <a class="btn" href="/user_trades/{username}">📊 Ver Trades</a>
+          <a class="btn" href="/user_trades/{username}?key={ADMIN_SECRET_KEY}">📊 Ver Trades</a>
         </div>
       </body>
     </html>
