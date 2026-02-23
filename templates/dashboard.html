@@ -203,10 +203,9 @@
             <button type="submit" style="background:#6366f1;">Info</button>
           </form>
 
-          <!-- TRADES -->
-          <form class="inline" action="/user_trades/{{ u.user }}?key=macdsmartpro_admin" method="get">
-            <button class="btn-trades" type="submit">Trades</button>
-          </form>
+          <a href="/user_trades/{{ u.user }}?key=macdsmartpro_admin">
+              <button class="btn-trades" type="button">Trades</button>
+          </a>
 
           <!-- ✏ EDITAR TRIAL -->
           <form class="inline" action="/edit_trial/{{ u.id }}" method="get">
