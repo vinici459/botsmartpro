@@ -532,7 +532,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     db.add(user)
     db.commit()
     token = create_token(username)
-    resp = RedirectResponse(url="/dashboard", status_code=303)
+    resp = RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
     resp.set_cookie("token", token, httponly=True, max_age=21600)
     return resp
 
