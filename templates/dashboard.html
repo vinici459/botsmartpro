@@ -199,13 +199,13 @@
         <td class="actions">
 
           <!-- 👤 BOTÃO INFO DO CLIENTE (CORRETO) -->
-          <form class="inline" action="/user_info/{{ u.user }}?key=macdsmartpro_admin" method="get">
-            <button type="submit" style="background:#6366f1;">Info</button>
+          <form class="inline" action="/user_info/{{ u.user }}?key={{ request.query_params.get('key') }}" method="get">
+              <button type="submit" style="background:#6366f1;">Info</button>
           </form>
 
-          <form class="inline" action="/user_trades/{{ u.user }}?key=macdsmartpro_admin" method="get">
-          <button class="btn-trades" type="submit">Trades</button>
-        </form>
+          <form class="inline" action="/user_trades/{{ u.user }}?key={{ request.query_params.get('key') }}" method="get">
+              <button class="btn-trades" type="submit">Trades</button>
+          </form>
 
           <!-- ✏ EDITAR TRIAL -->
           <form class="inline" action="/edit_trial/{{ u.id }}" method="get">
