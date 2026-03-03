@@ -44,7 +44,7 @@ def _parse_version(v: str):
 
 def _version_info(client_version: str):
     latest = os.getenv("APP_LATEST_VERSION", "1.2").strip()
-    min_required = os.getenv("APP_MIN_REQUIRED_VERSION", "1.0").strip()
+    min_required = os.getenv("APP_MIN_REQUIRED_VERSION", "1.1").strip()
 
     cv = _parse_version(client_version)
     lv = _parse_version(latest)
