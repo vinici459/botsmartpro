@@ -279,6 +279,22 @@ def startup():
 def _only_digits(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
+def validar_telefone(phone: str) -> bool:
+    phone = _only_digits(phone)
+
+    # Deve ter 10 ou 11 dígitos
+    if len(phone) not in (10, 11):
+        return False
+
+    # Não pode ser repetição tipo 99999999999
+    if phone == phone[0] * len(phone):
+        return False
+
+    # Se for celular (11 dígitos), o 3º número deve ser 9
+    if len(phone) == 11 and phone[2] != "9":
+        return False
+
+    return True
 
 def validar_cpf(cpf: str) -> bool:
     """Validação padrão de CPF (dígitos verificadores)."""
@@ -414,7 +430,7 @@ def signup_submit(
 
     username = (user or "").strip()
     name = (full_name or "").strip()
-    phone_clean = (phone or "").strip()  # 👈 LIMPA TELEFONE
+    phone_clean = _only_digits(phone)
     cpf_clean = _only_digits(cpf)
 
     def render_form(erro_msg=""):
@@ -466,6 +482,10 @@ def signup_submit(
     # 🔐 valida campos obrigatórios
     if not name or not username or not password or not phone_clean:
         return render_form("Preencha todos os campos obrigatórios, incluindo o telefone.")
+
+    # 📞 valida telefone
+    if not validar_telefone(phone_clean):
+        return render_form("Telefone inválido. Digite um número válido com DDD.")
 
     # 🔐 valida confirmação de senha
     if password != confirm_password:
