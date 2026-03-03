@@ -20,6 +20,66 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+# ============================
+# 🔁 VERSIONAMENTO DO BOT
+# ============================
+APP_LATEST_VERSION = (os.getenv("APP_LATEST_VERSION") or "1.0").strip()
+APP_MIN_REQUIRED_VERSION = (os.getenv("APP_MIN_REQUIRED_VERSION") or "1.0").strip()
+
+
+
+def _parse_version(v: str):
+    """Converte '1.2' -> (1,2). Suporta '1', '1.2.3'."""
+    v = (v or "").strip()
+    parts = []
+    for p in v.split("."):
+        try:
+            parts.append(int(p))
+        except Exception:
+            parts.append(0)
+    while len(parts) < 2:
+        parts.append(0)
+    return tuple(parts)
+
+def _version_info(client_version: str):
+    latest = os.getenv("APP_LATEST_VERSION", "1.0").strip()
+    min_required = os.getenv("APP_MIN_REQUIRED_VERSION", "1.0").strip()
+
+    cv = _parse_version(client_version)
+    lv = _parse_version(latest)
+    mv = _parse_version(min_required)
+
+    return {
+        "latest": latest,
+        "min_required": min_required,
+        "update_available": cv < lv,
+        "update_required": cv < mv,
+    }
+
+def _ver_lt(a: str, b: str) -> bool:
+    pa = _parse_version(a)
+    pb = _parse_version(b)
+    n = max(len(pa), len(pb))
+    pa = pa + (0,) * (n - len(pa))
+    pb = pb + (0,) * (n - len(pb))
+    return pa < pb
+
+def _version_status(client_version: str) -> dict:
+    cv = (client_version or "").strip() or "0.0"
+    latest = APP_LATEST_VERSION
+    minreq = APP_MIN_REQUIRED_VERSION
+    update_available = _ver_lt(cv, latest)
+    update_required = _ver_lt(cv, minreq)
+    return {
+        "client_version": cv,
+        "latest_version": latest,
+        "min_required_version": minreq,
+        "update_available": bool(update_available),
+        "update_required": bool(update_required),
+    }
+
+
 SECRET_KEY = "chave_super_segura"
 ADMIN_SECRET_KEY = "macdsmartpro_admin"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -463,6 +523,12 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
 
     username = (data.get("user") or "").strip()
     password = (data.get("password") or "").strip()
+    client_version = (data.get("version") or data.get("app_version") or "").strip()
+    vinfo = _version_status(client_version)
+
+    if vinfo.get("update_required"):
+        return {"ok": False, "reason": "update_required", **vinfo}
+
     name = (data.get("full_name") or "").strip()
     cpf_clean = _only_digits(data.get("cpf") or "")
 
@@ -713,11 +779,29 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
 
 @app.post("/api/auth")
 def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
+
+    # =========================
+    # 📦 VERSIONAMENTO
+    # =========================
+    client_version = (data.get("version") or "0.0").strip()
+    vinfo = _version_info(client_version)
+
+    # =========================
+    # 🔐 LOGIN NORMAL
+    # =========================
     username = (data.get("user") or "").strip()
     password = (data.get("password") or "").strip()
 
     if not username or not password:
         return {"ok": False, "reason": "missing_fields"}
+
+    # 🚨 Se for atualização obrigatória → bloqueia antes de tudo
+    if vinfo.get("update_required"):
+        return {
+            "ok": False,
+            "reason": "update_required",
+            **vinfo
+        }
 
     user = db.query(User).filter(User.user == username).first()
 
@@ -730,7 +814,9 @@ def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
         return {"ok": False, "reason": "invalid_password"}
 
-    # valida trial/licença
+    # =========================
+    # 🧪 TRIAL / LICENÇA
+    # =========================
     if user.trial_until:
         try:
             if datetime.datetime.utcnow() > user.trial_until:
@@ -738,53 +824,75 @@ def api_auth(data: dict = Body(...), db: Session = Depends(get_db_session)):
         except Exception:
             pass
 
-    # 🔐 gera nova sessão (derruba qualquer login anterior)
+    # =========================
+    # 🔐 NOVA SESSÃO
+    # =========================
     session_id = str(uuid.uuid4())
     user.active_session = session_id
-
     user.last_login = datetime.datetime.utcnow()
     user.login_count = (user.login_count or 0) + 1
 
     db.add(user)
     db.commit()
 
+    # =========================
+    # ✅ SUCESSO
+    # =========================
     return {
         "ok": True,
         "user": username,
-        "session_id": session_id,   # 👈 BOT VAI USAR ISSO NO HEARTBEAT
+        "session_id": session_id,
         "perfil": user.perfil,
         "lucro": user.lucro,
         **_trial_info(user),
+        **vinfo  # 👈 AQUI ENTRA O VERSIONAMENTO
     }
-
-
 
 @app.post("/api/update_results")
 def api_update_results(data: dict = Body(...), db: Session = Depends(get_db_session)):
+
     username = data.get("user")
     lucro = data.get("lucro")
     perfil = data.get("perfil")
+
+    # ✅ PEGAR VERSÃO DO CLIENTE
+    client_version = (data.get("version") or data.get("app_version") or "").strip()
+    vinfo = _version_status(client_version)
+
     if not username:
         return {"ok": False, "reason": "missing_user"}
+
+    # 🚨 Atualização obrigatória bloqueia
+    if vinfo.get("update_required"):
+        return {"ok": False, "reason": "update_required", **vinfo}
+
     try:
         lucro = float(lucro)
     except Exception:
         lucro = 0.0
+
     perfil = str(perfil or "Desconhecido").strip()
+
     user = db.query(User).filter(User.user == username).first()
+
     if not user:
         return {"ok": False, "reason": "user_not_found"}
+
     user.lucro = lucro
     user.perfil = perfil
+
     db.add(user)
     db.commit()
-    return {"ok": True}
+
+    return {"ok": True, **vinfo}
 
 
 @app.post("/api/account_status")
 def api_account_status(data: dict = Body(...), db: Session = Depends(get_db_session)):
     username = (data.get("user") or "").strip()
     session_id = (data.get("session_id") or "").strip()
+    client_version = (data.get("version") or data.get("app_version") or "").strip()
+    vinfo = _version_status(client_version)
 
     if not username:
         return {
@@ -829,6 +937,17 @@ def api_account_status(data: dict = Body(...), db: Session = Depends(get_db_sess
                 **trial_data,
             }
 
+    # 🚫 Atualização obrigatória?
+    if vinfo.get("update_required"):
+        trial_data = _trial_info(user)
+        return {
+            "ok": False,
+            "valid": False,
+            "reason": "update_required",
+            **trial_data,
+            **vinfo,
+        }
+
     # 📅 Verificação do período de teste/licença
     trial_data = _trial_info(user)
 
@@ -854,12 +973,15 @@ def api_account_status(data: dict = Body(...), db: Session = Depends(get_db_sess
         "valid": True,
         "reason": "active",
         **trial_data,
+        **vinfo,
     }
 
 @app.post("/api/validate_session")
 def api_validate_session(data: dict = Body(...), db: Session = Depends(get_db_session)):
     username = data.get("user")
     session_id = data.get("session_id")
+    client_version = (data.get("version") or data.get("app_version") or "").strip()
+    vinfo = _version_status(client_version)
     
     if not username:
         return {"ok": False, "reason": "missing_fields"}
