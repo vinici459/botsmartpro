@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renovar Acesso — Bot Smart Pro</title>
+  <style>
+    :root {
+      --bg: #0e1013;
+      --card: #171a1d;
+      --card-2: #1c2025;
+      --input: #111827;
+      --line: #23272d;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --green: #22c55e;
+      --green-dark: #15803d;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 0 28px rgba(0,0,0,0.45);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(37,99,235,0.12), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(34,197,94,0.08), transparent 25%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 22px;
+    }
+
+    .panel {
+      background: rgba(23,26,29,0.98);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100%;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(37,99,235,0.12);
+      color: #93c5fd;
+      font-weight: 600;
+      font-size: 13px;
+      border: 1px solid rgba(59,130,246,0.22);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+      max-width: 520px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px;
+    }
+
+    .step-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(37,99,235,0.16);
+      color: #bfdbfe;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .price-box {
+      margin-top: 22px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(34,197,94,0.10));
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .price-label {
+      color: #bfdbfe;
+      font-size: 13px;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .price {
+      margin-top: 6px;
+      font-size: 34px;
+      font-weight: 800;
+    }
+
+    .price small {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .form-wrap {
+      padding: 32px;
+    }
+
+    .form-header h2 {
+      margin: 0;
+      font-size: 26px;
+      color: #93c5fd;
+    }
+
+    .form-header p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .alert {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+
+    .alert.error {
+      background: rgba(239,68,68,0.10);
+      color: #fecaca;
+      border-color: rgba(239,68,68,0.22);
+    }
+
+    .alert.success {
+      background: rgba(34,197,94,0.12);
+      color: #bbf7d0;
+      border-color: rgba(34,197,94,0.24);
+    }
+
+    form {
+      margin-top: 22px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid transparent;
+      outline: none;
+      background: var(--input);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 14px 14px;
+      font-size: 15px;
+      transition: .18s ease;
+    }
+
+    .field input:focus {
+      border-color: rgba(59,130,246,0.45);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .search-btn, .method-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .search-btn {
+      background: var(--blue);
+      color: white;
+    }
+
+    .search-btn:hover { background: var(--blue-hover); }
+
+    .account-card {
+      margin-top: 24px;
+      background: var(--card-2);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .account-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .account-top h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .status-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+
+    .status-active { background: rgba(34,197,94,0.14); color: #86efac; }
+    .status-expiring { background: rgba(245,158,11,0.14); color: #fcd34d; }
+    .status-expired { background: rgba(239,68,68,0.14); color: #fca5a5; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .info-box {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .info-box small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .info-box strong {
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .renew-box {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+
+    .renew-box h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .renew-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .methods {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .method-btn {
+      background: #1f2937;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.05);
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .method-btn:hover {
+      transform: translateY(-1px);
+      opacity: .96;
+    }
+
+    .method-btn.pix {
+      background: linear-gradient(135deg, rgba(34,197,94,0.25), rgba(21,128,61,0.45));
+    }
+
+    .method-btn.card {
+      background: linear-gradient(135deg, rgba(37,99,235,0.28), rgba(29,78,216,0.50));
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 14px; }
+      .hero, .form-wrap { padding: 22px; }
+      h1 { font-size: 28px; }
+      .grid, .methods { grid-template-columns: 1fr; }
+      .price { font-size: 29px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="panel">
+      <div class="hero">
+        <div>
+          <div class="badge">💹 Bot Smart Pro • Renovação segura</div>
+          <h1>Renove seu acesso em poucos segundos.</h1>
+          <p class="subtitle">
+            Informe o CPF cadastrado, confirme os dados da sua conta e escolha a forma de pagamento.
+            Assim que o pagamento for aprovado, o sistema adiciona automaticamente mais 30 dias de acesso ao bot.
+          </p>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div>
+                <strong>Localize sua conta pelo CPF</strong>
+                <span>Digite somente o CPF do cadastro para buscarmos automaticamente seu acesso no sistema.</span>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">2</div>
+              <div>
+                <strong>Confira os dados do usuário</strong>
+                <span>Mostramos nome, usuário, telefone, validade atual e situação da conta antes da cobrança.</span>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">3</div>
+              <div>
+                <strong>Pague com Pix ou cartão</strong>
+                <span>Após a confirmação do Mercado Pago, seu acesso recebe +30 dias automaticamente.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="price-box">
+          <div class="price-label">Valor da renovação</div>
+          <div class="price">R$ 20,00 <small>/ +30 dias</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="form-wrap">
+        <div class="form-header">
+          <h2>Buscar conta para renovação</h2>
+          <p>
+            Digite o CPF cadastrado no Bot Smart Pro. Depois da busca, o sistema exibirá seus dados e liberará as opções de pagamento.
+          </p>
+        </div>
+
+        {% if error %}
+          <div class="alert error">{{ error }}</div>
+        {% endif %}
+
+        {% if success %}
+          <div class="alert success">{{ success }}</div>
+        {% endif %}
+
+        <form action="/renovar" method="post">
+          <div class="field">
+            <label for="cpf">CPF cadastrado</label>
+            <input
+              id="cpf"
+              name="cpf"
+              type="text"
+              inputmode="numeric"
+              maxlength="14"
+              placeholder="000.000.000-00"
+              value="{{ cpf or '' }}"
+              required
+            >
+            <div class="hint">Use o mesmo CPF informado no cadastro da sua conta.</div>
+          </div>
+
+          <button class="search-btn" type="submit">Buscar minha conta</button>
+        </form>
+
+        {% if account %}
+          <div class="account-card">
+            <div class="account-top">
+              <h3>Conta localizada com sucesso</h3>
+              <span class="status-chip {% if account.status_key == 'ativo' %}status-active{% elif account.status_key == 'expirando' %}status-expiring{% else %}status-expired{% endif %}">
+                {{ account.status_text }}
+              </span>
+            </div>
+
+            <div class="grid">
+              <div class="info-box">
+                <small>Nome completo</small>
+                <strong>{{ account.full_name }}</strong>
+              </div>
+
+              <div class="info-box">
+                <small>Usuário</small>
+                <strong>{{ account.username }}</strong>
+              </div>
+
+              <div class="info-box">
+                <small>CPF</small>
+                <strong>{{ account.cpf_masked }}</strong>
+              </div>
+
+              <div class="info-box">
+                <small>Telefone</small>
+                <strong>{{ account.phone or 'Não informado' }}</strong>
+              </div>
+
+              <div class="info-box">
+                <small>Validade atual</small>
+                <strong>{{ account.valid_until }}</strong>
+              </div>
+
+              <div class="info-box">
+                <small>Renovação</small>
+                <strong>+30 dias por R$ 20,00</strong>
+              </div>
+            </div>
+
+            <div class="renew-box">
+              <h4>Escolha a forma de pagamento</h4>
+              <p>
+                Ao clicar em uma das opções abaixo, o sistema criará a cobrança no Mercado Pago e seguirá com a confirmação automática.
+              </p>
+
+              <div class="methods">
+                <form action="/renovar/criar-pagamento" method="post">
+                  <input type="hidden" name="cpf" value="{{ account.cpf_raw }}">
+                  <input type="hidden" name="payment_method" value="pix">
+                  <button class="method-btn pix" type="submit">🔳 Pagar com Pix</button>
+                </form>
+
+                <form action="/renovar/criar-pagamento" method="post">
+                  <input type="hidden" name="cpf" value="{{ account.cpf_raw }}">
+                  <input type="hidden" name="payment_method" value="card">
+                  <button class="method-btn card" type="submit">💳 Pagar com Cartão</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="footer-note">
+          O acesso é renovado automaticamente somente após a confirmação oficial do pagamento pelo Mercado Pago.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const cpfInput = document.getElementById('cpf');
+    if (cpfInput) {
+      cpfInput.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 9) {
+          v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+        } else if (v.length > 6) {
+          v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        } else if (v.length > 3) {
+          v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+        }
+        e.target.value = v;
+      });
+    }
+  </script>
+</body>
+</html>
