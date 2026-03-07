@@ -338,6 +338,89 @@ def renovar_page(
         }
     )
 
+# ==========================
+# 💳 CRIAR PAGAMENTO RENOVAÇÃO
+# ==========================
+
+@app.post("/renovar/criar-pagamento", response_class=HTMLResponse)
+def renovar_criar_pagamento(
+    request: Request,
+    cpf: str = Form(...),
+    payment_method: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    cpf_clean = _only_digits(cpf)
+
+    if not cpf_clean:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "CPF não informado para criar o pagamento.",
+                "success": None,
+                "cpf": cpf or "",
+            }
+        )
+
+    user = db.query(User).filter(User.cpf == cpf_clean).first()
+
+    if not user:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Conta não encontrada para este CPF.",
+                "success": None,
+                "cpf": cpf or "",
+            }
+        )
+
+    now = datetime.datetime.utcnow()
+    valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
+
+    if user.trial_until and now > user.trial_until:
+        status_text = "Expirado"
+        status_key = "expired"
+    elif user.trial_until:
+        dias = get_trial_days_left(user.trial_until)
+        status_text = f"Ativo ({dias} dias restantes)"
+        status_key = "active"
+    else:
+        status_text = "Sem validade definida"
+        status_key = "unknown"
+
+    def mask_cpf(v: str) -> str:
+        v = _only_digits(v)
+        if len(v) == 11:
+            return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+        return v
+
+    account = {
+        "full_name": user.full_name or "Não informado",
+        "username": user.user,
+        "cpf_masked": mask_cpf(user.cpf or ""),
+        "cpf_raw": user.cpf or "",
+        "phone": user.phone or "Não informado",
+        "valid_until": valid_until,
+        "status_text": status_text,
+        "status_key": status_key,
+    }
+
+    metodo_label = "Pix" if payment_method == "pix" else "Cartão"
+
+    return templates.TemplateResponse(
+        "renew_payment.html",
+        {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": f"Pagamento via {metodo_label} iniciado com sucesso. Agora vamos integrar ao Mercado Pago.",
+            "cpf": cpf or "",
+        }
+    )
+
 @app.on_event("startup")
 def startup():
     ensure_active_session_column()  # 👈 PRIMEIRA COISA, ANTES DE TUDO
