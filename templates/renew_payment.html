@@ -434,12 +434,20 @@
     </section>
 
     <section class="panel">
-      <div class="form-wrap">
-        <div class="form-header">
-          <h2>Buscar conta para renovação</h2>
-          <p>
+      <div class="form-header">
+        <h2>Buscar conta para renovação</h2>
+        
+        <p>
             Digite o CPF cadastrado no Bot Smart Pro. Depois da busca, o sistema exibirá seus dados e liberará as opções de pagamento.
-          </p>
+        </p>
+
+        <div style="margin-top:14px;">
+            <a href="/cadastro?key={{ request.query_params.get('key', '') }}"
+            style="color:#60a5fa;text-decoration:none;font-size:13px;">
+            Ainda não tem conta? Criar nova conta
+            </a>
+        </div>
+
         </div>
 
         {% if error %}

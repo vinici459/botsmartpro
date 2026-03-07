@@ -945,27 +945,34 @@ def signup_form(key: str | None = None):
     <p class="muted">Cadastro com período de teste automático de 15 dias.</p>
 
     <form action="/cadastro?key=__KEY__" method="post">
-      
-      <label>Nome completo *</label>
-      <input name="full_name" required maxlength="120" placeholder="Seu nome completo">
+  
+        <label>Nome completo *</label>
+        <input name="full_name" required maxlength="120" placeholder="Seu nome completo">
 
-      <label>CPF *</label>
-      <input name="cpf" required maxlength="14" placeholder="000.000.000-00">
+        <label>CPF *</label>
+        <input name="cpf" required maxlength="14" placeholder="000.000.000-00">
 
-      <label>Telefone / WhatsApp *</label>
-      <input name="phone" required maxlength="20" placeholder="(11) 99999-9999">
+        <label>Telefone / WhatsApp *</label>
+        <input name="phone" required maxlength="20" placeholder="(11) 99999-9999">
 
-      <label>Usuário *</label>
-      <input name="user" required maxlength="50" placeholder="ex: Username">
+        <label>Usuário *</label>
+        <input name="user" required maxlength="50" placeholder="ex: Username">
 
-      <label>Senha *</label>
-      <input name="password" required minlength="4" type="password" placeholder="••••••">
+        <label>Senha *</label>
+        <input name="password" required minlength="4" type="password" placeholder="••••••">
 
-      <label>Confirmar Senha *</label>
-      <input name="confirm_password" required minlength="4" type="password" placeholder="••••••">
+        <label>Confirmar Senha *</label>
+        <input name="confirm_password" required minlength="4" type="password" placeholder="••••••">
 
-      <button type="submit">Criar conta</button>
-    </form>
+        <button type="submit">Criar conta</button>
+
+        <div style="margin-top:14px;text-align:center;">
+            <a href="/renovar" style="color:#60a5fa;text-decoration:none;font-size:13px;">
+                Já tem conta? Clique aqui para renovar acesso
+            </a>
+        </div>
+
+        </form>
 
   </div>
 </body>
