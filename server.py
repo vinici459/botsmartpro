@@ -142,7 +142,25 @@ def ensure_cadastro_columns():
     except Exception as e:
         print("[DB] Erro ao garantir colunas cpf/full_name/phone:", e)
 
-
+def ensure_payment_columns():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS last_payment_id VARCHAR;
+            """))
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS last_payment_status VARCHAR;
+            """))
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS last_payment_at TIMESTAMP;
+            """))
+            conn.commit()
+            print("[DB] Colunas de pagamento verificadas/criadas.")
+    except Exception as e:
+        print("[DB] Erro ao garantir colunas de pagamento:", e)
 
 class User(Base):
     __tablename__ = "users"
@@ -164,6 +182,9 @@ class User(Base):
     trial_until = Column(DateTime, nullable=True)
     role = Column(String, default="user")
     active_session = Column(String, nullable=True)
+    last_payment_id = Column(String, nullable=True)
+    last_payment_status = Column(String, nullable=True)
+    last_payment_at = Column(DateTime, nullable=True)
 
 
 class Trade(Base):
@@ -705,14 +726,84 @@ def renovar_confirmar_pagamento(
         }
     )
 
+
+@app.get("/renovar/status-pagamento")
+def renovar_status_pagamento(
+    cpf: str,
+    payment_id: str,
+    db: Session = Depends(get_db_session),
+):
+    access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
+
+    if not access_token:
+        return {"ok": False, "reason": "missing_access_token"}
+
+    cpf_clean = _only_digits(cpf)
+    user = db.query(User).filter(User.cpf == cpf_clean).first()
+
+    if not user:
+        return {"ok": False, "reason": "user_not_found"}
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        response = requests.get(
+            f"https://api.mercadopago.com/v1/payments/{payment_id}",
+            headers=headers,
+            timeout=30,
+        )
+    except Exception as e:
+        return {"ok": False, "reason": "request_error", "detail": str(e)}
+
+    if response.status_code != 200:
+        return {"ok": False, "reason": "mp_lookup_failed", "status_code": response.status_code}
+
+    payment = response.json()
+    status = (payment.get("status") or "").strip().lower()
+
+    if status == "approved":
+        now = datetime.datetime.utcnow()
+
+        # evita adicionar 30 dias várias vezes
+        if getattr(user, "last_payment_id", None) != str(payment_id):
+            if user.trial_until and user.trial_until > now:
+                user.trial_until = user.trial_until + datetime.timedelta(days=30)
+            else:
+                user.trial_until = now + datetime.timedelta(days=30)
+
+            user.last_payment_id = str(payment_id)
+            user.last_payment_status = "approved"
+            user.last_payment_at = now
+
+            db.add(user)
+            db.commit()
+
+        return {
+            "ok": True,
+            "approved": True,
+            "status": status,
+            "trial_until": user.trial_until.isoformat() if user.trial_until else None,
+        }
+
+    return {
+        "ok": True,
+        "approved": False,
+        "status": status,
+    }
+
 @app.on_event("startup")
 def startup():
-    ensure_active_session_column()  # 👈 PRIMEIRA COISA, ANTES DE TUDO
+    ensure_active_session_column()  # 👈 PRIMEIRA COISA
 
     Base.metadata.create_all(bind=engine)
 
-    # Colunas extras para cadastro público (seguro rodar sempre)
+    # Colunas extras para cadastro público
     ensure_cadastro_columns()
+
+    # 🔥 NOVAS COLUNAS DE PAGAMENTO
+    ensure_payment_columns()
 
     db: Session = SessionLocal()
     try:

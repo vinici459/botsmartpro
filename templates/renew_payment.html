@@ -453,23 +453,26 @@
         {% endif %}
 
         {% if pix_qr %}
-        <div style="margin-top:20px; text-align:center;">
-            <h3>Escaneie o QR Code</h3>
-            <img src="data:image/png;base64,{{ pix_qr }}" width="220">
-            <p style="margin-top:10px;">Ou copie o código abaixo:</p>
-            <textarea style="width:100%; height:80px;">{{ pix_code }}</textarea>
-        </div>
+            <div id="pix-qr-container" style="margin-top:20px; text-align:center;">
+                <h3>Escaneie o QR Code</h3>
+                <img src="data:image/png;base64,{{ pix_qr }}" width="220">
+                <p style="margin-top:10px;">Ou copie o código abaixo:</p>
+                <textarea style="width:100%; height:80px;">{{ pix_code }}</textarea>
+            </div>
 
-        {% if payment_id %}
-        <form action="/renovar/confirmar-pagamento" method="post" style="margin-top:20px; text-align:center;">
-            <input type="hidden" name="cpf" value="{{ cpf }}">
-            <input type="hidden" name="payment_id" value="{{ payment_id }}">
-            <button type="submit" style="padding:10px 20px;background:#22c55e;border:none;border-radius:8px;color:#052e16;font-weight:bold;">
-                Confirmar Pagamento
-            </button>
-        </form>
-        {% endif %}
+            {% if payment_id %}
+            <form action="/renovar/confirmar-pagamento" method="post" style="margin-top:20px; text-align:center;">
+                <input type="hidden" name="cpf" value="{{ cpf }}">
+                <input type="hidden" name="payment_id" value="{{ payment_id }}">
+                <button type="submit" style="padding:10px 20px;background:#22c55e;border:none;border-radius:8px;color:#052e16;font-weight:bold;">
+                    Confirmar Pagamento
+                </button>
 
+                <div id="payment-auto-status" style="margin-top:12px; text-align:center; color:#9ca3af; font-size:13px;">
+                    Aguardando confirmação automática do pagamento...
+                </div>
+            </form>
+            {% endif %}
         {% endif %}
 
         <form action="/renovar" method="post">
@@ -563,20 +566,143 @@
   </div>
 
   <script>
-    const cpfInput = document.getElementById('cpf');
+    const cpfInput = document.getElementById("cpf");
     if (cpfInput) {
-      cpfInput.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+        cpfInput.addEventListener("input", (e) => {
+        let v = e.target.value.replace(/\D/g, "").slice(0, 11);
         if (v.length > 9) {
-          v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+            v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
         } else if (v.length > 6) {
-          v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+            v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
         } else if (v.length > 3) {
-          v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{0,3})/, "$1.$2");
         }
         e.target.value = v;
-      });
+        });
     }
-  </script>
-</body>
-</html>
+
+    (function () {
+        const paymentId = "{{ payment_id or '' }}";
+        const cpf = "{{ account.cpf_raw if account else (cpf or '') }}";
+        const hasQr = "{{ '1' if pix_qr else '' }}";
+        const countdownBoxId = "pix-countdown-box";
+        const countdownTextId = "pix-countdown-text";
+
+        if (!paymentId || !cpf || !hasQr) return;
+
+        const qrContainer = document.getElementById("pix-qr-container");
+        const autoStatus = document.getElementById("payment-auto-status");
+
+        let expiresAt = Date.now() + (15 * 60 * 1000);
+        let stopped = false;
+
+        function formatRemaining(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const min = String(Math.floor(total / 60)).padStart(2, "0");
+        const sec = String(total % 60).padStart(2, "0");
+        return `${min}:${sec}`;
+        }
+
+        function ensureCountdownUi() {
+        if (!qrContainer) return;
+
+        let box = document.getElementById(countdownBoxId);
+        if (!box) {
+            box = document.createElement("div");
+            box.id = countdownBoxId;
+            box.style.marginTop = "12px";
+            box.style.textAlign = "center";
+            box.style.color = "#fcd34d";
+            box.style.fontSize = "14px";
+            box.style.fontWeight = "700";
+            box.innerHTML = `
+            <div>Tempo para pagamento do Pix:</div>
+            <div id="${countdownTextId}" style="margin-top:6px; font-size:22px;">15:00</div>
+            `;
+            qrContainer.appendChild(box);
+        }
+        }
+
+        function updateCountdown() {
+        if (stopped) return;
+
+        const remaining = expiresAt - Date.now();
+        const countdownText = document.getElementById(countdownTextId);
+
+        if (countdownText) {
+            countdownText.textContent = formatRemaining(remaining);
+        }
+
+        if (remaining <= 0) {
+            stopped = true;
+
+            if (qrContainer) {
+            qrContainer.innerHTML = `
+                <div style="margin-top:20px; text-align:center; color:#fca5a5;">
+                <h3>Tempo do QR Code encerrado</h3>
+                <p>O prazo de 15 minutos terminou. Gere um novo pagamento para continuar.</p>
+                </div>
+            `;
+            }
+
+            if (autoStatus) {
+            autoStatus.textContent = "Consulta automática encerrada. Gere um novo Pix se ainda quiser renovar.";
+            }
+
+            return;
+        }
+
+        setTimeout(updateCountdown, 1000);
+        }
+
+        async function checkPaymentStatus() {
+        if (stopped) return;
+
+        try {
+            const url = `/renovar/status-pagamento?cpf=${encodeURIComponent(cpf)}&payment_id=${encodeURIComponent(paymentId)}`;
+            const resp = await fetch(url, { method: "GET" });
+            const data = await resp.json();
+
+            if (!data.ok) {
+            if (autoStatus) {
+                autoStatus.textContent = "Não foi possível verificar o pagamento agora. Tentando novamente...";
+            }
+            return;
+            }
+
+            if (data.approved) {
+            stopped = true;
+            if (autoStatus) {
+                autoStatus.textContent = "Pagamento aprovado! Atualizando a página...";
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+            return;
+            }
+
+            if (autoStatus) {
+            autoStatus.textContent = `Aguardando pagamento... Status atual: ${data.status || "desconhecido"}`;
+            }
+        } catch (e) {
+            if (autoStatus) {
+            autoStatus.textContent = "Erro ao consultar o pagamento. Tentando novamente...";
+            }
+        }
+        }
+
+        ensureCountdownUi();
+        updateCountdown();
+        checkPaymentStatus();
+
+        const poll = setInterval(() => {
+        if (stopped) {
+            clearInterval(poll);
+            return;
+        }
+        checkPaymentStatus();
+        }, 5000);
+    })();
+    </script>
+    </body>
+    </html>
