@@ -358,6 +358,42 @@ def renovar_criar_pagamento(
     cpf_clean = _only_digits(cpf)
     user = db.query(User).filter(User.cpf == cpf_clean).first()
 
+    def build_account(u):
+        now = datetime.datetime.utcnow()
+        valid_until = u.trial_until.strftime("%d/%m/%Y %H:%M") if u.trial_until else "Não definido"
+
+        if u.trial_until and now > u.trial_until:
+            status_text = "Expirado"
+            status_key = "expired"
+        elif u.trial_until:
+            dias = get_trial_days_left(u.trial_until)
+            if isinstance(dias, int) and dias <= 7:
+                status_text = f"Expirando ({dias} dias restantes)"
+                status_key = "expiring"
+            else:
+                status_text = f"Ativo ({dias} dias restantes)"
+                status_key = "active"
+        else:
+            status_text = "Sem validade definida"
+            status_key = "unknown"
+
+        def mask_cpf(v: str) -> str:
+            v = _only_digits(v)
+            if len(v) == 11:
+                return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+            return v
+
+        return {
+            "full_name": u.full_name or "Não informado",
+            "username": u.user,
+            "cpf_masked": mask_cpf(u.cpf or ""),
+            "cpf_raw": u.cpf or "",
+            "phone": u.phone or "Não informado",
+            "valid_until": valid_until,
+            "status_text": status_text,
+            "status_key": status_key,
+        }
+
     if not user:
         return templates.TemplateResponse(
             "renew_payment.html",
@@ -367,18 +403,24 @@ def renovar_criar_pagamento(
                 "error": "Conta não encontrada.",
                 "success": None,
                 "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
             }
         )
+
+    account = build_account(user)
 
     if not access_token:
         return templates.TemplateResponse(
             "renew_payment.html",
             {
                 "request": request,
-                "account": None,
+                "account": account,
                 "error": "MP_ACCESS_TOKEN_PROD está vazio ou não foi carregado no Railway.",
                 "success": None,
                 "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
             }
         )
 
@@ -387,10 +429,12 @@ def renovar_criar_pagamento(
             "renew_payment.html",
             {
                 "request": request,
-                "account": None,
+                "account": account,
                 "error": "Cartão será implementado em seguida. Use Pix por enquanto.",
                 "success": None,
                 "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
             }
         )
 
@@ -463,11 +507,25 @@ def renovar_criar_pagamento(
     qr_code = tx.get("qr_code", "")
     qr_base64 = tx.get("qr_code_base64", "")
 
+    if not qr_code or not qr_base64:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": "O Mercado Pago respondeu, mas não retornou o QR Code do Pix.",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+            }
+        )
+
     return templates.TemplateResponse(
         "renew_payment.html",
         {
             "request": request,
-            "account": None,
+            "account": account,
             "error": None,
             "success": "Pix gerado com sucesso. Escaneie o QR Code abaixo.",
             "pix_qr": qr_base64,
