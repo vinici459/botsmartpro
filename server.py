@@ -244,20 +244,81 @@ def get_trial_days_left(trial_until):
         return max(0, remaining.days)
     except Exception:
         return "-"
-# ==========================
-# 🔄 PÁGINA DE RENOVAÇÃO
-# ==========================
+    
+    
+@app.post("/renovar", response_class=HTMLResponse)
+def renovar_buscar(
+    request: Request,
+    cpf: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    cpf_clean = _only_digits(cpf)
 
-@app.get("/renovar", response_class=HTMLResponse)
-def renovar_page(request: Request):
+    if not cpf_clean:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Digite um CPF para buscar a conta.",
+                "success": None,
+                "cpf": cpf,
+            }
+        )
+
+    user = db.query(User).filter(User.cpf == cpf_clean).first()
+
+    if not user:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Nenhuma conta encontrada para este CPF.",
+                "success": None,
+                "cpf": cpf,
+            }
+        )
+
+    now = datetime.datetime.utcnow()
+    valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
+
+    if user.trial_until and now > user.trial_until:
+        status_text = "Expirado"
+        status_key = "expired"
+    elif user.trial_until:
+        dias = get_trial_days_left(user.trial_until)
+        status_text = f"Ativo ({dias} dias restantes)"
+        status_key = "active"
+    else:
+        status_text = "Sem validade definida"
+        status_key = "unknown"
+
+    def mask_cpf(v: str) -> str:
+        v = _only_digits(v)
+        if len(v) == 11:
+            return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+        return v
+
+    account = {
+        "full_name": user.full_name or "Não informado",
+        "username": user.user,
+        "cpf_masked": mask_cpf(user.cpf or ""),
+        "cpf_raw": user.cpf or "",
+        "phone": user.phone or "Não informado",
+        "valid_until": valid_until,
+        "status_text": status_text,
+        "status_key": status_key,
+    }
+
     return templates.TemplateResponse(
         "renew_payment.html",
         {
             "request": request,
-            "account": None,
+            "account": account,
             "error": None,
             "success": None,
-            "cpf": ""
+            "cpf": cpf,
         }
     )
 
