@@ -294,6 +294,7 @@ def renovar_page(
                     "pix_qr": None,
                     "pix_code": None,
                     "payment_id": None,
+                    "signup_key": PUBLIC_SIGNUP_KEY,
                 }
             )
 
@@ -311,6 +312,7 @@ def renovar_page(
                     "pix_qr": None,
                     "pix_code": None,
                     "payment_id": None,
+                    "signup_key": PUBLIC_SIGNUP_KEY,
                 }
             )
 
@@ -360,6 +362,7 @@ def renovar_page(
                 "pix_qr": None,
                 "pix_code": None,
                 "payment_id": None,
+                "signup_key": PUBLIC_SIGNUP_KEY,
             }
         )
 
