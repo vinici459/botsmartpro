@@ -428,7 +428,7 @@
 
         <div class="price-box">
           <div class="price-label">Valor da renovação</div>
-          <div class="price">R$ 20,00 <small>/ +30 dias</small></div>
+          <div class="price">R$ 1,00 <small>/ +30 dias</small></div>
         </div>
       </div>
     </section>
@@ -518,11 +518,7 @@
                 <small>CPF</small>
                 <strong>{{ account.cpf_masked }}</strong>
               </div>
-
-              <div class="info-box">
-                <small>Telefone</small>
-                <strong>{{ account.phone or 'Não informado' }}</strong>
-              </div>
+             
 
               <div class="info-box">
                 <small>Validade atual</small>
@@ -531,7 +527,7 @@
 
               <div class="info-box">
                 <small>Renovação</small>
-                <strong>+30 dias por R$ 20,00</strong>
+                <strong>+30 dias por R$ 1,00</strong>
               </div>
             </div>
 
@@ -671,14 +667,32 @@
             }
 
             if (data.approved) {
-            stopped = true;
-            if (autoStatus) {
-                autoStatus.textContent = "Pagamento aprovado! Atualizando a página...";
-            }
-            setTimeout(() => {
-                window.location.reload();
-            }, 1200);
-            return;
+                stopped = true;
+
+                if (qrContainer) {
+                    qrContainer.innerHTML = `
+                        <div style="margin-top:20px; text-align:center; color:#86efac;">
+                            <h3>Pagamento aprovado com sucesso ✅</h3>
+                            <p>Seu acesso foi renovado por mais 30 dias.</p>
+                        </div>
+                    `;
+                }
+
+                const confirmForm = document.querySelector('form[action="/renovar/confirmar-pagamento"]');
+                if (confirmForm) {
+                    confirmForm.style.display = "none";
+                }
+
+                if (autoStatus) {
+                    autoStatus.textContent = "Pagamento aprovado! Atualizando os dados da conta...";
+                    autoStatus.style.color = "#86efac";
+                }
+
+                setTimeout(() => {
+                    window.location.href = `/renovar?cpf=${encodeURIComponent(cpf)}&paid=1`;
+                }, 1500);
+
+                return;
             }
 
             if (autoStatus) {
