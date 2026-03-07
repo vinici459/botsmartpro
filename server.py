@@ -346,7 +346,7 @@ def renovar_criar_pagamento(
     payment_method: str = Form(...),
     db: Session = Depends(get_db_session),
 ):
-    access_token = os.getenv("MP_ACCESS_TOKEN_PROD")
+    access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
 
     cpf_clean = _only_digits(cpf)
     user = db.query(User).filter(User.cpf == cpf_clean).first()
@@ -392,8 +392,10 @@ def renovar_criar_pagamento(
 
     print("==== MERCADO PAGO DEBUG ====")
     print("Access token existe?", bool(access_token))
+    print("Access token prefixo:", access_token[:12] if access_token else "")
+    print("Access token tamanho:", len(access_token or ""))
     print("Payload enviado:", payment_data)
-
+    
     response = requests.post(
         "https://api.mercadopago.com/v1/payments",
         json=payment_data,
