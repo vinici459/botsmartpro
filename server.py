@@ -233,6 +233,9 @@ def require_login(request: Request):
 
     return data
 
+def _only_digits(s: str) -> str:
+    return "".join(ch for ch in (s or "") if ch.isdigit())
+
 def get_trial_days_left(trial_until):
     if not trial_until:
         return "-"
@@ -305,8 +308,12 @@ def renovar_page(
         status_key = "expired"
     elif user.trial_until:
         dias = get_trial_days_left(user.trial_until)
-        status_text = f"Ativo ({dias} dias restantes)"
-        status_key = "active"
+        if isinstance(dias, int) and dias <= 7:
+            status_text = f"Expirando ({dias} dias restantes)"
+            status_key = "expiring"
+        else:
+            status_text = f"Ativo ({dias} dias restantes)"
+            status_key = "active"
     else:
         status_text = "Sem validade definida"
         status_key = "unknown"
@@ -363,7 +370,18 @@ def renovar_criar_pagamento(
             }
         )
 
-    # Só vamos implementar Pix primeiro
+    if not access_token:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "MP_ACCESS_TOKEN_PROD está vazio ou não foi carregado no Railway.",
+                "success": None,
+                "cpf": cpf or "",
+            }
+        )
+
     if payment_method != "pix":
         return templates.TemplateResponse(
             "renew_payment.html",
@@ -378,16 +396,17 @@ def renovar_criar_pagamento(
 
     payment_data = {
         "transaction_amount": 20.0,
-        "description": f"Renovação Bot Smart Pro - {user.user}",
+        "description": f"Renovacao Bot Smart Pro - {user.user}",
         "payment_method_id": "pix",
         "payer": {
-            "email": f"{user.user}@botsmartpro.com"
+            "email": "pagamentos@botsmartpro.com"
         }
     }
 
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": str(uuid.uuid4()),
     }
 
     print("==== MERCADO PAGO DEBUG ====")
@@ -395,12 +414,27 @@ def renovar_criar_pagamento(
     print("Access token prefixo:", access_token[:12] if access_token else "")
     print("Access token tamanho:", len(access_token or ""))
     print("Payload enviado:", payment_data)
-    
-    response = requests.post(
-        "https://api.mercadopago.com/v1/payments",
-        json=payment_data,
-        headers=headers
-    )
+
+    try:
+        response = requests.post(
+            "https://api.mercadopago.com/v1/payments",
+            json=payment_data,
+            headers=headers,
+            timeout=30,
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": f"Erro de conexão com o Mercado Pago: {e}",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+            }
+        )
 
     print("Status MP:", response.status_code)
     print("Resposta MP:", response.text)
@@ -415,17 +449,19 @@ def renovar_criar_pagamento(
             "renew_payment.html",
             {
                 "request": request,
-                "account": None,
+                "account": account,
                 "error": f"Erro ao criar pagamento Pix: {mp_error}",
                 "success": None,
                 "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
             }
         )
 
     payment = response.json()
-
-    qr_code = payment["point_of_interaction"]["transaction_data"]["qr_code"]
-    qr_base64 = payment["point_of_interaction"]["transaction_data"]["qr_code_base64"]
+    tx = payment.get("point_of_interaction", {}).get("transaction_data", {})
+    qr_code = tx.get("qr_code", "")
+    qr_base64 = tx.get("qr_code_base64", "")
 
     return templates.TemplateResponse(
         "renew_payment.html",
@@ -467,11 +503,6 @@ def startup():
     finally:
         db.close()
 
-
-
-
-def _only_digits(s: str) -> str:
-    return "".join(ch for ch in (s or "") if ch.isdigit())
 
 def validar_telefone(phone: str) -> bool:
     phone = _only_digits(phone)

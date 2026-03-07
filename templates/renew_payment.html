@@ -484,8 +484,8 @@
           <div class="account-card">
             <div class="account-top">
               <h3>Conta localizada com sucesso</h3>
-              <span class="status-chip {% if account.status_key == 'ativo' %}status-active{% elif account.status_key == 'expirando' %}status-expiring{% else %}status-expired{% endif %}">
-                {{ account.status_text }}
+              <span class="status-chip {% if account.status_key == 'active' %}status-active{% elif account.status_key == 'expiring' %}status-expiring{% else %}status-expired{% endif %}">
+              {{ account.status_text }}
               </span>
             </div>
 
