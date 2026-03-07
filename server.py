@@ -549,34 +549,135 @@ def renovar_confirmar_pagamento(
 ):
     access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
 
-    if not access_token:
-        return HTMLResponse("Access token não configurado.", status_code=500)
-
     cpf_clean = _only_digits(cpf)
     user = db.query(User).filter(User.cpf == cpf_clean).first()
 
+    def build_account(u):
+        now = datetime.datetime.utcnow()
+        valid_until = u.trial_until.strftime("%d/%m/%Y %H:%M") if u.trial_until else "Não definido"
+
+        if u.trial_until and now > u.trial_until:
+            status_text = "Expirado"
+            status_key = "expired"
+        elif u.trial_until:
+            dias = get_trial_days_left(u.trial_until)
+            if isinstance(dias, int) and dias <= 7:
+                status_text = f"Expirando ({dias} dias restantes)"
+                status_key = "expiring"
+            else:
+                status_text = f"Ativo ({dias} dias restantes)"
+                status_key = "active"
+        else:
+            status_text = "Sem validade definida"
+            status_key = "unknown"
+
+        def mask_cpf(v: str) -> str:
+            v = _only_digits(v)
+            if len(v) == 11:
+                return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+            return v
+
+        return {
+            "full_name": u.full_name or "Não informado",
+            "username": u.user,
+            "cpf_masked": mask_cpf(u.cpf or ""),
+            "cpf_raw": u.cpf or "",
+            "phone": u.phone or "Não informado",
+            "valid_until": valid_until,
+            "status_text": status_text,
+            "status_key": status_key,
+        }
+
+    if not access_token:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": build_account(user) if user else None,
+                "error": "Token do Mercado Pago não configurado.",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": payment_id or "",
+            }
+        )
+
     if not user:
-        return HTMLResponse("Usuário não encontrado.", status_code=404)
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Usuário não encontrado.",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": payment_id or "",
+            }
+        )
+
+    account = build_account(user)
 
     headers = {
         "Authorization": f"Bearer {access_token}",
     }
 
-    response = requests.get(
-        f"https://api.mercadopago.com/v1/payments/{payment_id}",
-        headers=headers,
-        timeout=30,
-    )
+    try:
+        response = requests.get(
+            f"https://api.mercadopago.com/v1/payments/{payment_id}",
+            headers=headers,
+            timeout=30,
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": f"Erro ao consultar pagamento: {e}",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": payment_id or "",
+            }
+        )
 
     if response.status_code != 200:
-        return HTMLResponse("Erro ao consultar pagamento.", status_code=500)
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": "Não foi possível consultar o pagamento no Mercado Pago.",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": payment_id or "",
+            }
+        )
 
     payment = response.json()
+    status = (payment.get("status") or "").strip().lower()
 
-    if payment.get("status") != "approved":
-        return HTMLResponse("Pagamento ainda não foi aprovado.", status_code=400)
+    if status != "approved":
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": f"Pagamento ainda não foi aprovado. Status atual: {status or 'desconhecido'}.",
+                "success": None,
+                "cpf": cpf or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": payment_id or "",
+            }
+        )
 
-    # ✅ PAGAMENTO APROVADO → RENOVA 30 DIAS
     now = datetime.datetime.utcnow()
 
     if user.trial_until and user.trial_until > now:
@@ -586,16 +687,23 @@ def renovar_confirmar_pagamento(
 
     db.add(user)
     db.commit()
+    db.refresh(user)
 
-    return HTMLResponse("""
-    <html>
-    <body style='background:#0b1220;color:white;font-family:Arial;text-align:center;padding-top:100px;'>
-        <h2>Pagamento confirmado ✅</h2>
-        <p>Seu plano foi renovado por mais 30 dias.</p>
-        <a href="/renovar" style="color:#22c55e;">Voltar</a>
-    </body>
-    </html>
-    """)
+    account = build_account(user)
+
+    return templates.TemplateResponse(
+        "renew_payment.html",
+        {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": "Pagamento confirmado com sucesso. Seu acesso foi renovado por mais 30 dias.",
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+        }
+    )
 
 @app.on_event("startup")
 def startup():
