@@ -244,15 +244,31 @@ def get_trial_days_left(trial_until):
         return max(0, remaining.days)
     except Exception:
         return "-"
-    
-    
-@app.post("/renovar", response_class=HTMLResponse)
-def renovar_buscar(
+# ==========================
+# 🔄 PÁGINA DE RENOVAÇÃO
+# ==========================
+
+@app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
+def renovar_page(
     request: Request,
-    cpf: str = Form(...),
+    cpf: str = Form(None),
     db: Session = Depends(get_db_session),
 ):
-    cpf_clean = _only_digits(cpf)
+    # GET normal -> só abre a página
+    if request.method == "GET":
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": None,
+                "success": None,
+                "cpf": ""
+            }
+        )
+
+    # POST -> busca CPF
+    cpf_clean = _only_digits(cpf or "")
 
     if not cpf_clean:
         return templates.TemplateResponse(
@@ -262,7 +278,7 @@ def renovar_buscar(
                 "account": None,
                 "error": "Digite um CPF para buscar a conta.",
                 "success": None,
-                "cpf": cpf,
+                "cpf": cpf or "",
             }
         )
 
@@ -276,7 +292,7 @@ def renovar_buscar(
                 "account": None,
                 "error": "Nenhuma conta encontrada para este CPF.",
                 "success": None,
-                "cpf": cpf,
+                "cpf": cpf or "",
             }
         )
 
@@ -318,7 +334,7 @@ def renovar_buscar(
             "account": account,
             "error": None,
             "success": None,
-            "cpf": cpf,
+            "cpf": cpf or "",
         }
     )
 
