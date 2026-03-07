@@ -390,19 +390,31 @@ def renovar_criar_pagamento(
         "Content-Type": "application/json"
     }
 
+    print("==== MERCADO PAGO DEBUG ====")
+    print("Access token existe?", bool(access_token))
+    print("Payload enviado:", payment_data)
+
     response = requests.post(
         "https://api.mercadopago.com/v1/payments",
         json=payment_data,
         headers=headers
     )
 
+    print("Status MP:", response.status_code)
+    print("Resposta MP:", response.text)
+
     if response.status_code != 201:
+        try:
+            mp_error = response.json()
+        except Exception:
+            mp_error = response.text
+
         return templates.TemplateResponse(
             "renew_payment.html",
             {
                 "request": request,
                 "account": None,
-                "error": "Erro ao criar pagamento Pix.",
+                "error": f"Erro ao criar pagamento Pix: {mp_error}",
                 "success": None,
                 "cpf": cpf or "",
             }
