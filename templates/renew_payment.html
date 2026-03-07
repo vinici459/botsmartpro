@@ -447,7 +447,18 @@
         {% endif %}
 
         {% if success %}
-          <div class="alert success">{{ success }}</div>
+        <div class="alert success">
+            {{ success }}
+        </div>
+        {% endif %}
+
+        {% if pix_qr %}
+        <div style="margin-top:20px; text-align:center;">
+            <h3>Escaneie o QR Code</h3>
+            <img src="data:image/png;base64,{{ pix_qr }}" width="220">
+            <p style="margin-top:10px;">Ou copie o código abaixo:</p>
+            <textarea style="width:100%; height:80px;">{{ pix_code }}</textarea>
+        </div>
         {% endif %}
 
         <form action="/renovar" method="post">

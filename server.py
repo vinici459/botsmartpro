@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uuid
+import requests
 
 import bcrypt, jwt, datetime, os
 from sqlalchemy import (
@@ -338,10 +339,6 @@ def renovar_page(
         }
     )
 
-# ==========================
-# 💳 CRIAR PAGAMENTO RENOVAÇÃO
-# ==========================
-
 @app.post("/renovar/criar-pagamento", response_class=HTMLResponse)
 def renovar_criar_pagamento(
     request: Request,
@@ -349,20 +346,9 @@ def renovar_criar_pagamento(
     payment_method: str = Form(...),
     db: Session = Depends(get_db_session),
 ):
+    access_token = os.getenv("MP_ACCESS_TOKEN_PROD")
+
     cpf_clean = _only_digits(cpf)
-
-    if not cpf_clean:
-        return templates.TemplateResponse(
-            "renew_payment.html",
-            {
-                "request": request,
-                "account": None,
-                "error": "CPF não informado para criar o pagamento.",
-                "success": None,
-                "cpf": cpf or "",
-            }
-        )
-
     user = db.query(User).filter(User.cpf == cpf_clean).first()
 
     if not user:
@@ -371,52 +357,71 @@ def renovar_criar_pagamento(
             {
                 "request": request,
                 "account": None,
-                "error": "Conta não encontrada para este CPF.",
+                "error": "Conta não encontrada.",
                 "success": None,
                 "cpf": cpf or "",
             }
         )
 
-    now = datetime.datetime.utcnow()
-    valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
+    # Só vamos implementar Pix primeiro
+    if payment_method != "pix":
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Cartão será implementado em seguida. Use Pix por enquanto.",
+                "success": None,
+                "cpf": cpf or "",
+            }
+        )
 
-    if user.trial_until and now > user.trial_until:
-        status_text = "Expirado"
-        status_key = "expired"
-    elif user.trial_until:
-        dias = get_trial_days_left(user.trial_until)
-        status_text = f"Ativo ({dias} dias restantes)"
-        status_key = "active"
-    else:
-        status_text = "Sem validade definida"
-        status_key = "unknown"
-
-    def mask_cpf(v: str) -> str:
-        v = _only_digits(v)
-        if len(v) == 11:
-            return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
-        return v
-
-    account = {
-        "full_name": user.full_name or "Não informado",
-        "username": user.user,
-        "cpf_masked": mask_cpf(user.cpf or ""),
-        "cpf_raw": user.cpf or "",
-        "phone": user.phone or "Não informado",
-        "valid_until": valid_until,
-        "status_text": status_text,
-        "status_key": status_key,
+    payment_data = {
+        "transaction_amount": 20.0,
+        "description": f"Renovação Bot Smart Pro - {user.user}",
+        "payment_method_id": "pix",
+        "payer": {
+            "email": f"{user.user}@botsmartpro.com"
+        }
     }
 
-    metodo_label = "Pix" if payment_method == "pix" else "Cartão"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(
+        "https://api.mercadopago.com/v1/payments",
+        json=payment_data,
+        headers=headers
+    )
+
+    if response.status_code != 201:
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": None,
+                "error": "Erro ao criar pagamento Pix.",
+                "success": None,
+                "cpf": cpf or "",
+            }
+        )
+
+    payment = response.json()
+
+    qr_code = payment["point_of_interaction"]["transaction_data"]["qr_code"]
+    qr_base64 = payment["point_of_interaction"]["transaction_data"]["qr_code_base64"]
 
     return templates.TemplateResponse(
         "renew_payment.html",
         {
             "request": request,
-            "account": account,
+            "account": None,
             "error": None,
-            "success": f"Pagamento via {metodo_label} iniciado com sucesso. Agora vamos integrar ao Mercado Pago.",
+            "success": "Pix gerado com sucesso. Escaneie o QR Code abaixo.",
+            "pix_qr": qr_base64,
+            "pix_code": qr_code,
             "cpf": cpf or "",
         }
     )
