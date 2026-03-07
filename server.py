@@ -468,7 +468,7 @@ def renovar_criar_pagamento(
         )
 
     payment_data = {
-        "transaction_amount": 1.0,
+        "transaction_amount": 20.0,
         "description": f"Renovacao Bot Smart Pro - {user.user}",
         "payment_method_id": "pix",
         "payer": {
