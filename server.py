@@ -503,6 +503,10 @@ def renovar_criar_pagamento(
         )
 
     payment = response.json()
+
+    # 👇 PEGAMOS O ID DO PAGAMENTO
+    payment_id = str(payment.get("id") or "").strip()
+
     tx = payment.get("point_of_interaction", {}).get("transaction_data", {})
     qr_code = tx.get("qr_code", "")
     qr_base64 = tx.get("qr_code_base64", "")
@@ -518,6 +522,7 @@ def renovar_criar_pagamento(
                 "cpf": cpf or "",
                 "pix_qr": None,
                 "pix_code": None,
+                "payment_id": None,
             }
         )
 
@@ -527,12 +532,70 @@ def renovar_criar_pagamento(
             "request": request,
             "account": account,
             "error": None,
-            "success": "Pix gerado com sucesso. Escaneie o QR Code abaixo.",
+            "success": "Pix gerado com sucesso. Após pagar, clique em Confirmar Pagamento.",
             "pix_qr": qr_base64,
             "pix_code": qr_code,
+            "payment_id": payment_id,  # 👈 AGORA ENVIAMOS O ID
             "cpf": cpf or "",
         }
     )
+
+@app.post("/renovar/confirmar-pagamento", response_class=HTMLResponse)
+def renovar_confirmar_pagamento(
+    request: Request,
+    cpf: str = Form(...),
+    payment_id: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
+
+    if not access_token:
+        return HTMLResponse("Access token não configurado.", status_code=500)
+
+    cpf_clean = _only_digits(cpf)
+    user = db.query(User).filter(User.cpf == cpf_clean).first()
+
+    if not user:
+        return HTMLResponse("Usuário não encontrado.", status_code=404)
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    response = requests.get(
+        f"https://api.mercadopago.com/v1/payments/{payment_id}",
+        headers=headers,
+        timeout=30,
+    )
+
+    if response.status_code != 200:
+        return HTMLResponse("Erro ao consultar pagamento.", status_code=500)
+
+    payment = response.json()
+
+    if payment.get("status") != "approved":
+        return HTMLResponse("Pagamento ainda não foi aprovado.", status_code=400)
+
+    # ✅ PAGAMENTO APROVADO → RENOVA 30 DIAS
+    now = datetime.datetime.utcnow()
+
+    if user.trial_until and user.trial_until > now:
+        user.trial_until = user.trial_until + datetime.timedelta(days=30)
+    else:
+        user.trial_until = now + datetime.timedelta(days=30)
+
+    db.add(user)
+    db.commit()
+
+    return HTMLResponse("""
+    <html>
+    <body style='background:#0b1220;color:white;font-family:Arial;text-align:center;padding-top:100px;'>
+        <h2>Pagamento confirmado ✅</h2>
+        <p>Seu plano foi renovado por mais 30 dias.</p>
+        <a href="/renovar" style="color:#22c55e;">Voltar</a>
+    </body>
+    </html>
+    """)
 
 @app.on_event("startup")
 def startup():
