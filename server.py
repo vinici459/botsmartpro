@@ -244,7 +244,22 @@ def get_trial_days_left(trial_until):
         return max(0, remaining.days)
     except Exception:
         return "-"
+# ==========================
+# 🔄 PÁGINA DE RENOVAÇÃO
+# ==========================
 
+@app.get("/renovar", response_class=HTMLResponse)
+def renovar_page(request: Request):
+    return templates.TemplateResponse(
+        "renew_payment.html",
+        {
+            "request": request,
+            "account": None,
+            "error": None,
+            "success": None,
+            "cpf": ""
+        }
+    )
 
 @app.on_event("startup")
 def startup():
