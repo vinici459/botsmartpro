@@ -279,93 +279,101 @@ def renovar_page(
     cpf: str = Form(None),
     db: Session = Depends(get_db_session),
 ):
-    # GET normal -> só abre a página
-    if request.method == "GET":
-        return templates.TemplateResponse(
-            "renew_payment.html",
-            {
-                "request": request,
-                "account": None,
-                "error": None,
-                "success": None,
-                "cpf": ""
-            }
-        )
+    def render_account_page(cpf_value: str = "", success_msg: str = None):
+        cpf_clean = _only_digits(cpf_value or "")
 
-    # POST -> busca CPF
-    cpf_clean = _only_digits(cpf or "")
+        if not cpf_clean:
+            return templates.TemplateResponse(
+                "renew_payment.html",
+                {
+                    "request": request,
+                    "account": None,
+                    "error": None,
+                    "success": success_msg,
+                    "cpf": cpf_value or "",
+                    "pix_qr": None,
+                    "pix_code": None,
+                    "payment_id": None,
+                }
+            )
 
-    if not cpf_clean:
-        return templates.TemplateResponse(
-            "renew_payment.html",
-            {
-                "request": request,
-                "account": None,
-                "error": "Digite um CPF para buscar a conta.",
-                "success": None,
-                "cpf": cpf or "",
-            }
-        )
+        user = db.query(User).filter(User.cpf == cpf_clean).first()
 
-    user = db.query(User).filter(User.cpf == cpf_clean).first()
+        if not user:
+            return templates.TemplateResponse(
+                "renew_payment.html",
+                {
+                    "request": request,
+                    "account": None,
+                    "error": "Nenhuma conta encontrada para este CPF.",
+                    "success": success_msg,
+                    "cpf": cpf_value or "",
+                    "pix_qr": None,
+                    "pix_code": None,
+                    "payment_id": None,
+                }
+            )
 
-    if not user:
-        return templates.TemplateResponse(
-            "renew_payment.html",
-            {
-                "request": request,
-                "account": None,
-                "error": "Nenhuma conta encontrada para este CPF.",
-                "success": None,
-                "cpf": cpf or "",
-            }
-        )
+        now = datetime.datetime.utcnow()
+        valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
 
-    now = datetime.datetime.utcnow()
-    valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
-
-    if user.trial_until and now > user.trial_until:
-        status_text = "Expirado"
-        status_key = "expired"
-    elif user.trial_until:
-        dias = get_trial_days_left(user.trial_until)
-        if isinstance(dias, int) and dias <= 7:
-            status_text = f"Expirando ({dias} dias restantes)"
-            status_key = "expiring"
+        if user.trial_until and now > user.trial_until:
+            status_text = "Expirado"
+            status_key = "expired"
+        elif user.trial_until:
+            dias = get_trial_days_left(user.trial_until)
+            if isinstance(dias, int) and dias <= 7:
+                status_text = f"Expirando ({dias} dias restantes)"
+                status_key = "expiring"
+            else:
+                status_text = f"Ativo ({dias} dias restantes)"
+                status_key = "active"
         else:
-            status_text = f"Ativo ({dias} dias restantes)"
-            status_key = "active"
-    else:
-        status_text = "Sem validade definida"
-        status_key = "unknown"
+            status_text = "Sem validade definida"
+            status_key = "unknown"
 
-    def mask_cpf(v: str) -> str:
-        v = _only_digits(v)
-        if len(v) == 11:
-            return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
-        return v
+        def mask_cpf(v: str) -> str:
+            v = _only_digits(v)
+            if len(v) == 11:
+                return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+            return v
 
-    account = {
-        "full_name": user.full_name or "Não informado",
-        "username": user.user,
-        "cpf_masked": mask_cpf(user.cpf or ""),
-        "cpf_raw": user.cpf or "",
-        "phone": user.phone or "Não informado",
-        "valid_until": valid_until,
-        "status_text": status_text,
-        "status_key": status_key,
-    }
-
-    return templates.TemplateResponse(
-        "renew_payment.html",
-        {
-            "request": request,
-            "account": account,
-            "error": None,
-            "success": None,
-            "cpf": cpf or "",
+        account = {
+            "full_name": user.full_name or "Não informado",
+            "username": user.user,
+            "cpf_masked": mask_cpf(user.cpf or ""),
+            "cpf_raw": user.cpf or "",
+            "phone": user.phone or "Não informado",
+            "valid_until": valid_until,
+            "status_text": status_text,
+            "status_key": status_key,
         }
-    )
+
+        return templates.TemplateResponse(
+            "renew_payment.html",
+            {
+                "request": request,
+                "account": account,
+                "error": None,
+                "success": success_msg,
+                "cpf": cpf_value or "",
+                "pix_qr": None,
+                "pix_code": None,
+                "payment_id": None,
+            }
+        )
+
+    if request.method == "GET":
+        cpf_query = request.query_params.get("cpf", "") or ""
+        paid = request.query_params.get("paid", "") or ""
+
+        success_msg = None
+        if paid == "1":
+            success_msg = "Pagamento aprovado com sucesso. Seu acesso foi renovado por mais 30 dias."
+
+        return render_account_page(cpf_query, success_msg)
+
+    return render_account_page(cpf or "", None)
 
 @app.post("/renovar/criar-pagamento", response_class=HTMLResponse)
 def renovar_criar_pagamento(
@@ -701,14 +709,20 @@ def renovar_confirmar_pagamento(
 
     now = datetime.datetime.utcnow()
 
-    if user.trial_until and user.trial_until > now:
-        user.trial_until = user.trial_until + datetime.timedelta(days=30)
-    else:
-        user.trial_until = now + datetime.timedelta(days=30)
+    # evita adicionar 30 dias duas vezes para o mesmo payment_id
+    if getattr(user, "last_payment_id", None) != str(payment_id):
+        if user.trial_until and user.trial_until > now:
+            user.trial_until = user.trial_until + datetime.timedelta(days=30)
+        else:
+            user.trial_until = now + datetime.timedelta(days=30)
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+        user.last_payment_id = str(payment_id)
+        user.last_payment_status = "approved"
+        user.last_payment_at = now
+
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     account = build_account(user)
 
