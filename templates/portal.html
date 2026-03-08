@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal — Bot Smart Pro</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --bg-2:#0f1720;
+      --card:#171c22;
+      --card-2:#1c232b;
+      --line:rgba(255,255,255,0.06);
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --green:#22c55e;
+      --green-2:#16a34a;
+      --blue:#2563eb;
+      --blue-2:#1d4ed8;
+      --yellow:#f59e0b;
+      --shadow:0 18px 45px rgba(0,0,0,.38);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family:"Segoe UI", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(37,99,235,0.10), transparent 24%),
+        radial-gradient(circle at bottom left, rgba(34,197,94,0.08), transparent 24%),
+        linear-gradient(180deg, #0a0e13 0%, #0c1117 100%);
+    }
+
+    .wrap{
+      width:100%;
+      max-width:1180px;
+      margin:0 auto;
+      padding:28px 18px 40px;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:22px;
+      align-items:stretch;
+    }
+
+    .panel{
+      background:rgba(23,28,34,.96);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero-left{
+      padding:34px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:100%;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      width:fit-content;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(34,197,94,.10);
+      color:#86efac;
+      border:1px solid rgba(34,197,94,.16);
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      flex-wrap:wrap;
+    }
+
+    .brand-logo{
+      width:88px;
+      height:88px;
+      border-radius:20px;
+      background:
+        radial-gradient(circle at center, rgba(34,197,94,.25), transparent 58%),
+        rgba(255,255,255,.02);
+      border:1px solid rgba(255,255,255,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      flex-shrink:0;
+    }
+
+    .brand-logo img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    h1{
+      margin:0;
+      font-size:42px;
+      line-height:1.05;
+      letter-spacing:-0.5px;
+    }
+
+    .subtitle{
+      margin:14px 0 0;
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.7;
+      max-width:630px;
+    }
+
+    .hero-points{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:12px;
+      margin-top:26px;
+    }
+
+    .mini-box{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+
+    .mini-box strong{
+      display:block;
+      font-size:14px;
+      margin-bottom:6px;
+    }
+
+    .mini-box span{
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .hero-right{
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      justify-content:center;
+      background:
+        linear-gradient(160deg, rgba(37,99,235,.10), rgba(34,197,94,.06));
+    }
+
+    .quick-card{
+      padding:18px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:rgba(10,14,19,.30);
+    }
+
+    .quick-card h3{
+      margin:0 0 8px;
+      font-size:16px;
+    }
+
+    .quick-card p{
+      margin:0 0 14px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .big-action{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      text-decoration:none;
+      border:none;
+      width:100%;
+      min-height:54px;
+      border-radius:14px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .big-action:hover{
+      transform:translateY(-1px);
+      opacity:.97;
+    }
+
+    .big-action.download{
+      background:linear-gradient(135deg, rgba(34,197,94,.30), rgba(22,163,74,.54));
+      color:white;
+    }
+
+    .big-action.telegram{
+      background:linear-gradient(135deg, rgba(37,99,235,.30), rgba(29,78,216,.56));
+      color:white;
+    }
+
+    .content{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:22px;
+      margin-top:22px;
+    }
+
+    .card{
+      padding:28px;
+    }
+
+    .card-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .card-head h2{
+      margin:0;
+      font-size:26px;
+    }
+
+    .card-head p{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .chip{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .chip.green{
+      background:rgba(34,197,94,.12);
+      color:#86efac;
+      border:1px solid rgba(34,197,94,.18);
+    }
+
+    .chip.blue{
+      background:rgba(37,99,235,.12);
+      color:#93c5fd;
+      border:1px solid rgba(37,99,235,.18);
+    }
+
+    form{
+      display:grid;
+      gap:14px;
+    }
+
+    .field label{
+      display:block;
+      margin-bottom:8px;
+      font-size:13px;
+      font-weight:700;
+      color:#dbe3ec;
+    }
+
+    .field input{
+      width:100%;
+      background:#0f1720;
+      color:var(--text);
+      border:1px solid transparent;
+      border-radius:14px;
+      padding:14px 14px;
+      font-size:15px;
+      outline:none;
+      transition:.18s ease;
+    }
+
+    .field input:focus{
+      border-color:rgba(37,99,235,.46);
+      box-shadow:0 0 0 3px rgba(37,99,235,.12);
+    }
+
+    .hint{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .submit-btn{
+      margin-top:6px;
+      border:none;
+      border-radius:14px;
+      min-height:52px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .submit-btn:hover{
+      transform:translateY(-1px);
+      opacity:.97;
+    }
+
+    .submit-btn.green{
+      background:var(--green);
+      color:#062a14;
+    }
+
+    .submit-btn.blue{
+      background:var(--blue);
+      color:white;
+    }
+
+    .note{
+      margin-top:16px;
+      padding:14px 15px;
+      border-radius:14px;
+      background:rgba(255,255,255,.02);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    .footer{
+      margin-top:18px;
+      text-align:center;
+      color:#708090;
+      font-size:12px;
+    }
+
+    @media (max-width: 960px){
+      .hero,
+      .content{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 640px){
+      .wrap{padding:16px 12px 28px}
+      .hero-left,.hero-right,.card{padding:20px}
+      h1{font-size:32px}
+      .hero-points{grid-template-columns:1fr}
+      .brand-logo{width:72px;height:72px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="panel hero-left">
+        <div>
+          <div class="badge">🤖 Bot Smart Pro • Portal oficial</div>
+
+          <div class="brand">
+            <div class="brand-logo">
+              <img src="/static/bot_smart_pro.png" alt="Bot Smart Pro">
+            </div>
+
+            <div>
+              <h1>Smart Pro</h1>
+              <p class="subtitle">
+                Cadastro, renovação e download em uma única página. Mais praticidade para você
+                e uma apresentação mais profissional para seus clientes.
+              </p>
+            </div>
+          </div>
+
+          <div class="hero-points">
+            <div class="mini-box">
+              <strong>Primeiro acesso</strong>
+              <span>Crie sua conta com período de teste automático e comece a usar o bot com rapidez.</span>
+            </div>
+
+            <div class="mini-box">
+              <strong>Renovação simples</strong>
+              <span>Consulte sua conta pelo CPF e continue com o acesso ativo pelo sistema.</span>
+            </div>
+
+            <div class="mini-box">
+              <strong>Tudo centralizado</strong>
+              <span>Download do bot, tutorial do Telegram e fluxo de acesso no mesmo lugar.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel hero-right">
+        <div class="quick-card">
+            <h3>Baixar Bot Smart Pro</h3>
+            <p>Use este botão para baixar a versão atual do bot.</p>
+
+            <a class="big-action download"
+            href="https://drive.google.com/file/d/1PNQQGMDileK57UhKhSi-mYAhVeOsRBOs/view"
+            target="_blank"
+            rel="noopener noreferrer">
+            ⬇ Baixar Bot Smart Pro
+            </a>
+        </div>
+
+        <div class="quick-card">
+            <h3>Tutorial para configurar Telegram</h3>
+            <p>Passo a passo completo para configurar o Telegram no bot.</p>
+
+            <a class="big-action telegram"
+            href="https://drive.google.com/file/d/1vvbHSG0Vm6I4dHfuB3G7cFw6xlx-t40O/view"
+            target="_blank"
+            rel="noopener noreferrer">
+            📘 Tutorial para configurar o Telegram
+            </a>
+        </div>
+        
+      </div>    
+    </section>
+
+    <section class="content">
+      <div class="panel card">
+        <div class="card-head">
+          <div>
+            <h2>Primeiro acesso</h2>
+            <p>Preencha seus dados para criar sua conta no Bot Smart Pro.</p>
+          </div>
+          <span class="chip green">Cadastro</span>
+        </div>
+
+        <form action="/cadastro?key={{ signup_key }}" method="post">
+          <div class="field">
+            <label for="full_name">Nome completo</label>
+            <input id="full_name" name="full_name" type="text" maxlength="120" placeholder="Seu nome completo" required>
+          </div>
+
+          <div class="field">
+            <label for="cpf">CPF</label>
+            <input id="cpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required>
+          </div>
+
+          <div class="field">
+            <label for="phone">Telefone / WhatsApp</label>
+            <input id="phone" name="phone" type="text" inputmode="numeric" maxlength="20" placeholder="(11) 99999-9999" required>
+          </div>
+
+          <div class="field">
+            <label for="user">Usuário</label>
+            <input id="user" name="user" type="text" maxlength="50" placeholder="Ex: Vinici459" required>
+          </div>
+
+          <div class="field">
+            <label for="password">Senha</label>
+            <input id="password" name="password" type="password" minlength="4" placeholder="••••••" required>
+          </div>
+
+          <div class="field">
+            <label for="confirm_password">Confirmar senha</label>
+            <input id="confirm_password" name="confirm_password" type="password" minlength="4" placeholder="••••••" required>
+          </div>
+
+          <button class="submit-btn green" type="submit">Criar conta</button>
+        </form>
+
+        <div class="note">
+          Ao concluir o cadastro, a conta entra no fluxo atual do seu sistema sem necessidade de alterar a lógica existente.
+        </div>
+      </div>
+
+      <div class="panel card">
+        <div class="card-head">
+          <div>
+            <h2>Renovar acesso</h2>
+            <p>Informe o CPF cadastrado para consultar sua conta e seguir para o pagamento da renovação.</p>
+          </div>
+          <span class="chip blue">Renovação</span>
+        </div>
+
+        <form action="/renovar" method="post">
+          <div class="field">
+            <label for="cpf_renovacao">CPF cadastrado</label>
+            <input id="cpf_renovacao" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required>
+            <div class="hint">Você será direcionado para a tela de renovação com a busca da conta pelo CPF informado.</div>
+          </div>
+
+          <button class="submit-btn blue" type="submit">Buscar minha conta</button>
+        </form>
+
+        <div class="note">
+          A tela de renovação continua sendo a sua atual, com consulta de conta, geração de Pix e confirmação de pagamento.
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Bot Smart Pro — Portal central de acesso
+    </div>
+  </div>
+</body>
+</html>

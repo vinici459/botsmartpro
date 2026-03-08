@@ -28,7 +28,8 @@ load_dotenv()
 APP_LATEST_VERSION = (os.getenv("APP_LATEST_VERSION") or "1.0").strip()
 APP_MIN_REQUIRED_VERSION = (os.getenv("APP_MIN_REQUIRED_VERSION") or "1.0").strip()
 
-
+BOT_DOWNLOAD_URL = "https://drive.google.com/file/d/1PNQQGMDileK57UhKhSi-mYAhVeOsRBOs/view"
+TELEGRAM_TUTORIAL_URL = "https://drive.google.com/file/d/1vvbHSG0Vm6I4dHfuB3G7cFw6xlx-t40O/view"
 
 def _parse_version(v: str):
     """Converte '1.2' -> (1,2). Suporta '1', '1.2.3'."""
@@ -1153,11 +1154,20 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
     return {"ok": True, "user": username, **_trial_info(new_user)}
 
 
+@app.get("/portal", response_class=HTMLResponse)
+def portal_page(request: Request):
+    return templates.TemplateResponse(
+        "portal.html",
+        {
+            "request": request,
+            "signup_key": PUBLIC_SIGNUP_KEY,
+        }
+    )
+
 
 @app.get("/")
 def root():
-    # Redireciona visitantes para a página de cadastro público
-    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
+    return RedirectResponse(url="/portal")
 
 @app.get("/admin-smartpro-459-panel", response_class=HTMLResponse)
 def login_page(request: Request):
