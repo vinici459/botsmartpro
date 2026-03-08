@@ -13,7 +13,9 @@
   --text:#e5e7eb;
   --muted:#9ca3af;
   --green:#22c55e;
+  --green-dark:#16a34a;
   --blue:#2563eb;
+  --blue-dark:#1d4ed8;
   --shadow:0 20px 50px rgba(0,0,0,.35);
   --radius:20px;
 }
@@ -30,36 +32,26 @@ body{
 .wrap{
   max-width:900px;
   margin:0 auto;
-  padding:28px 16px 50px;
-}
-
-.back{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  color:#93c5fd;
-  text-decoration:none;
-  font-size:14px;
-  margin-bottom:22px;
+  padding:40px 18px 60px;
 }
 
 .header{
   text-align:center;
-  margin-bottom:40px;
+  margin-bottom:50px;
 }
 
 .header img{
-  width:90px;
+  width:95px;
   margin-bottom:18px;
 }
 
 .header h1{
   margin:0;
-  font-size:38px;
+  font-size:40px;
 }
 
 .header p{
-  margin-top:12px;
+  margin-top:14px;
   color:var(--muted);
   font-size:15px;
 }
@@ -68,17 +60,18 @@ body{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
-  padding:26px;
-  margin-bottom:22px;
+  padding:28px;
+  margin-bottom:26px;
   box-shadow:var(--shadow);
 }
 
 .card h3{
   margin:0 0 8px;
+  font-size:20px;
 }
 
 .card p{
-  margin:0 0 18px;
+  margin:0 0 20px;
   color:var(--muted);
   font-size:14px;
 }
@@ -91,8 +84,8 @@ body{
   text-decoration:none;
   font-weight:700;
   font-size:16px;
-  height:56px;
-  border-radius:14px;
+  height:58px;
+  border-radius:16px;
   transition:.2s;
 }
 
@@ -102,19 +95,15 @@ body{
 }
 
 .green{
-  background:linear-gradient(135deg,#22c55e,#16a34a);
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
   color:white;
 }
 
 .blue{
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  background:linear-gradient(135deg,var(--blue),var(--blue-dark));
   color:white;
 }
 
-.gray{
-  background:#1e2630;
-  color:white;
-}
 </style>
 </head>
 
@@ -122,12 +111,10 @@ body{
 
 <div class="wrap">
 
-<a href="/" class="back">← Voltar</a>
-
 <div class="header">
   <img src="/static/bot_smart_pro.png" alt="Bot Smart Pro">
   <h1>Smart Pro</h1>
-  <p>Tudo que você precisa em um único lugar. Simples, direto e organizado.</p>
+  <p>Download, configuração e acesso organizados em um único lugar.</p>
 </div>
 
 <div class="card">
@@ -152,8 +139,8 @@ body{
 
 <div class="card">
   <h3>Primeiro Acesso</h3>
-  <p>Ainda não tem conta? Crie seu cadastro em poucos minutos.</p>
-  <a class="button gray"
+  <p>Ainda não tem conta? Faça seu cadastro de forma rápida.</p>
+  <a class="button green"
      href="/cadastro?key={{ signup_key }}">
      📝 Criar Conta
   </a>
@@ -161,8 +148,8 @@ body{
 
 <div class="card">
   <h3>Renovar Acesso</h3>
-  <p>Já é cliente? Renove sua assinatura de forma rápida e segura.</p>
-  <a class="button gray"
+  <p>Já é cliente? Renove sua assinatura de maneira simples e segura.</p>
+  <a class="button blue"
      href="/renovar">
      🔄 Renovar Acesso
   </a>
