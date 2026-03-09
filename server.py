@@ -873,25 +873,29 @@ def renovar_status_pagamento(
         "status": status,
     }
 
+FORCE_ADMIN_PASSWORD_RESET = (os.getenv("FORCE_ADMIN_PASSWORD_RESET") or "false").strip().lower() == "true"
+
 @app.on_event("startup")
 def startup():
-    ensure_active_session_column()  # 👈 PRIMEIRA COISA
+    ensure_active_session_column()
 
     Base.metadata.create_all(bind=engine)
-
-    # Colunas extras para cadastro público
     ensure_cadastro_columns()
-
-    # 🔥 NOVAS COLUNAS DE PAGAMENTO
     ensure_payment_columns()
 
     db: Session = SessionLocal()
     try:
+        if not ADMIN_INITIAL_PASSWORD:
+            raise RuntimeError("ADMIN_INITIAL_PASSWORD não configurada")
+
         admin = db.query(User).filter(User.user == "Vinici459").first()
+
         if not admin:
-            if not ADMIN_INITIAL_PASSWORD:
-                raise RuntimeError("ADMIN_INITIAL_PASSWORD não configurada")
-            pw_hash = bcrypt.hashpw(ADMIN_INITIAL_PASSWORD.encode(), bcrypt.gensalt()).decode()
+            pw_hash = bcrypt.hashpw(
+                ADMIN_INITIAL_PASSWORD.encode(),
+                bcrypt.gensalt()
+            ).decode()
+
             trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=9999)
             admin_user = User(
                 user="Vinici459",
@@ -902,6 +906,19 @@ def startup():
             )
             db.add(admin_user)
             db.commit()
+
+        elif FORCE_ADMIN_PASSWORD_RESET:
+            admin.password = bcrypt.hashpw(
+                ADMIN_INITIAL_PASSWORD.encode(),
+                bcrypt.gensalt()
+            ).decode()
+            admin.role = "admin"
+            admin.enabled = True
+            if not admin.trial_until:
+                admin.trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=9999)
+            db.add(admin)
+            db.commit()
+
     finally:
         db.close()
 
@@ -1439,7 +1456,7 @@ def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin)
             <input type="number" name="trial_days" min="1" value="7" required><br>
             <button type="submit">Salvar</button>
           </form>
-          <p><a href="/dashboard" style="color:#60a5fa;">Voltar</a></p>
+          <p><a href="/admin-smartpro-459-panel/dashboard" style="color:#60a5fa;">Voltar</a></p>
         </div>
       </body>
     </html>
@@ -1908,7 +1925,7 @@ def user_info_page(
             <span class="value">{user.login_count or 0}</span>
           </div>
 
-          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
+          <a class="btn" href="/admin-smartpro-459-panel/dashboard">⬅ Voltar ao Painel</a>
           &nbsp;
           <a class="btn" href="/user_trades/{username}">📊 Ver Trades</a>
         </div>
@@ -2000,7 +2017,7 @@ def user_trades_page(
       <body>
         <h2>Histórico de Trades — {username}</h2>
         <div style="text-align:center;">
-          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
+          <a class="btn" href="/admin-smartpro-459-panel/dashboard">⬅ Voltar ao Painel</a>
         </div>
 
         <div style="text-align:center; margin-top:10px;">
