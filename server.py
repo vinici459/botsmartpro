@@ -1252,10 +1252,6 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
 
 
 
-@app.get("/")
-def root():
-    # Redireciona visitantes para a página de cadastro público
-    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
 
 @app.get("/admin-smartpro-459-panel", response_class=HTMLResponse)
 def login_page(request: Request):
