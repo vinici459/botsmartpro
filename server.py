@@ -342,6 +342,22 @@ def get_trial_days_left(trial_until):
 # 🔄 PÁGINA DE RENOVAÇÃO
 # ==========================
 
+@app.get("/")
+def root():
+    return RedirectResponse(url="/portal")
+
+
+@app.get("/portal", response_class=HTMLResponse)
+def portal_page(request: Request):
+    return templates.TemplateResponse(
+        "portal.html",
+        {
+            "request": request,
+            "signup_key": PUBLIC_SIGNUP_KEY,
+        }
+    )
+
+
 @app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
 def renovar_page(
     request: Request,
