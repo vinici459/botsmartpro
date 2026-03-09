@@ -28,8 +28,7 @@ load_dotenv()
 APP_LATEST_VERSION = (os.getenv("APP_LATEST_VERSION") or "1.0").strip()
 APP_MIN_REQUIRED_VERSION = (os.getenv("APP_MIN_REQUIRED_VERSION") or "1.0").strip()
 
-BOT_DOWNLOAD_URL = "https://drive.google.com/file/d/1PNQQGMDileK57UhKhSi-mYAhVeOsRBOs/view"
-TELEGRAM_TUTORIAL_URL = "https://drive.google.com/file/d/1vvbHSG0Vm6I4dHfuB3G7cFw6xlx-t40O/view"
+
 
 def _parse_version(v: str):
     """Converte '1.2' -> (1,2). Suporta '1', '1.2.3'."""
@@ -82,9 +81,14 @@ def _version_status(client_version: str) -> dict:
     }
 
 
-SECRET_KEY = "chave_super_segura"
-ADMIN_SECRET_KEY = "macdsmartpro_admin"
+SECRET_KEY = (os.getenv("SECRET_KEY") or "").strip()
+ADMIN_SECRET_KEY = (os.getenv("ADMIN_SECRET_KEY") or "").strip()
+ADMIN_INITIAL_PASSWORD = (os.getenv("ADMIN_INITIAL_PASSWORD") or "").strip()
+SESSION_COOKIE_SECURE = (os.getenv("SESSION_COOKIE_SECURE") or "true").strip().lower() in {"1", "true", "yes", "on"}
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY não configurada")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -96,6 +100,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 app = FastAPI(title="Painel Admin MACD Smart Pro")
+
+LOGIN_ATTEMPTS = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_BLOCK_SECONDS = 300
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
@@ -205,8 +213,12 @@ class Trade(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
-def create_token(user):
-    payload = {"user": user, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=6)}
+def create_token(user: str, session_id: str):
+    payload = {
+        "user": user,
+        "sid": session_id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=6),
+    }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
@@ -225,6 +237,50 @@ def get_db_session():
         db.close()
 
 
+def _redirect_admin_login() -> HTTPException:
+    return HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
+
+
+def _client_ip(request: Request) -> str:
+    try:
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
+    except Exception:
+        pass
+    return request.client.host if request.client else "unknown"
+
+
+def _is_login_blocked(ip: str) -> bool:
+    now_ts = datetime.datetime.utcnow().timestamp()
+    entry = LOGIN_ATTEMPTS.get(ip)
+    if not entry:
+        return False
+    if entry.get("until", 0) > now_ts:
+        return True
+    if entry.get("until", 0) <= now_ts and entry.get("count", 0) < MAX_LOGIN_ATTEMPTS:
+        LOGIN_ATTEMPTS.pop(ip, None)
+    return False
+
+
+def _register_failed_login(ip: str):
+    now_ts = datetime.datetime.utcnow().timestamp()
+    entry = LOGIN_ATTEMPTS.get(ip, {"count": 0, "until": 0})
+
+    if entry.get("until", 0) > now_ts:
+        LOGIN_ATTEMPTS[ip] = entry
+        return
+
+    entry["count"] = int(entry.get("count", 0)) + 1
+    if entry["count"] >= MAX_LOGIN_ATTEMPTS:
+        entry["until"] = now_ts + LOGIN_BLOCK_SECONDS
+    LOGIN_ATTEMPTS[ip] = entry
+
+
+def _clear_failed_login(ip: str):
+    LOGIN_ATTEMPTS.pop(ip, None)
+
+
 # ============================
 # 🔐 ADMIN FIXO (apenas Vinici459)
 # ============================
@@ -232,28 +288,40 @@ def require_admin(request: Request, db: Session = Depends(get_db_session)):
     token = request.cookies.get("token")
     data = decode_token(token) if token else None
 
-    # 🔐 Se não estiver logado → vai para login admin secreto
     if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
+        raise _redirect_admin_login()
 
-    username = data.get("user")
+    username = (data.get("user") or "").strip()
+    session_id = (data.get("sid") or "").strip()
 
-    # 🔐 Só o admin acessa o painel
-    if username != "Vinici459":
-        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
+    user = db.query(User).filter(User.user == username).first()
+    if not user or username != "Vinici459" or user.role != "admin":
+        raise _redirect_admin_login()
 
-    return data
+    if not session_id or user.active_session != session_id:
+        raise _redirect_admin_login()
+
+    if not user.enabled:
+        raise _redirect_admin_login()
+
+    return {"user": user.user, "sid": session_id}
 
 
-def require_login(request: Request):
+def require_login(request: Request, db: Session = Depends(get_db_session)):
     token = request.cookies.get("token")
     data = decode_token(token) if token else None
 
-    # 🔐 Qualquer usuário não logado vai para /admin (não mais para /)
     if not data:
-        raise HTTPException(status_code=303, headers={"Location": "/admin-smartpro-459-panel"})
+        raise _redirect_admin_login()
 
-    return data
+    username = (data.get("user") or "").strip()
+    session_id = (data.get("sid") or "").strip()
+
+    user = db.query(User).filter(User.user == username).first()
+    if not user or not session_id or user.active_session != session_id or not user.enabled:
+        raise _redirect_admin_login()
+
+    return {"user": user.user, "sid": session_id}
 
 def _only_digits(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
@@ -485,12 +553,7 @@ def renovar_criar_pagamento(
         "Content-Type": "application/json",
         "X-Idempotency-Key": str(uuid.uuid4()),
     }
-
-    print("==== MERCADO PAGO DEBUG ====")
-    print("Access token existe?", bool(access_token))
-    print("Access token prefixo:", access_token[:12] if access_token else "")
-    print("Access token tamanho:", len(access_token or ""))
-    print("Payload enviado:", payment_data)
+    print("[MP] Criando pagamento Pix...")
 
     try:
         response = requests.post(
@@ -513,8 +576,7 @@ def renovar_criar_pagamento(
             }
         )
 
-    print("Status MP:", response.status_code)
-    print("Resposta MP:", response.text)
+    print(f"[MP] Status ao criar pagamento: {response.status_code}")
 
     if response.status_code != 201:
         try:
@@ -827,7 +889,9 @@ def startup():
     try:
         admin = db.query(User).filter(User.user == "Vinici459").first()
         if not admin:
-            pw_hash = bcrypt.hashpw("Polegar159826eu!".encode(), bcrypt.gensalt()).decode()
+            if not ADMIN_INITIAL_PASSWORD:
+                raise RuntimeError("ADMIN_INITIAL_PASSWORD não configurada")
+            pw_hash = bcrypt.hashpw(ADMIN_INITIAL_PASSWORD.encode(), bcrypt.gensalt()).decode()
             trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=9999)
             admin_user = User(
                 user="Vinici459",
@@ -1154,20 +1218,11 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
     return {"ok": True, "user": username, **_trial_info(new_user)}
 
 
-@app.get("/portal", response_class=HTMLResponse)
-def portal_page(request: Request):
-    return templates.TemplateResponse(
-        "portal.html",
-        {
-            "request": request,
-            "signup_key": PUBLIC_SIGNUP_KEY,
-        }
-    )
-
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/portal")
+    # Redireciona visitantes para a página de cadastro público
+    return RedirectResponse(url=f"/cadastro?key={PUBLIC_SIGNUP_KEY}")
 
 @app.get("/admin-smartpro-459-panel", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -1176,42 +1231,60 @@ def login_page(request: Request):
 
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db_session)):
+    ip = _client_ip(request)
+    if _is_login_blocked(ip):
+        return templates.TemplateResponse("login.html", {"request": request, "msg": "Muitas tentativas. Aguarde alguns minutos e tente novamente."})
+
+    username = (username or "").strip()
+    password = (password or "").strip()
+    invalid_msg = "Usuário ou senha inválidos."
+
     user = db.query(User).filter(User.user == username).first()
     if not user:
-        return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário não encontrado."})
+        _register_failed_login(ip)
+        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
 
-    # 👇 Só o admin pode acessar o painel
-    if username != "Vinici459":
-        return templates.TemplateResponse("login.html", {"request": request, "msg": "Acesso permitido apenas ao administrador."})
+    if username != "Vinici459" or user.role != "admin":
+        _register_failed_login(ip)
+        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
 
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
-        return templates.TemplateResponse("login.html", {"request": request, "msg": "Senha incorreta."})
+        _register_failed_login(ip)
+        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
+
     if not user.enabled:
+        _register_failed_login(ip)
         return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário desativado."})
-    if user.role != "admin" and user.trial_until:
-        if datetime.datetime.utcnow() > user.trial_until:
-            return templates.TemplateResponse("login.html", {"request": request, "msg": "Período de teste expirado."})
+
+    session_id = str(uuid.uuid4())
     now = datetime.datetime.utcnow()
+    user.active_session = session_id
     user.last_login = now
     user.login_count = (user.login_count or 0) + 1
     db.add(user)
     db.commit()
-    token = create_token(username)
-    resp = RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
-    resp.set_cookie("token", token, httponly=True, max_age=21600)
+
+    _clear_failed_login(ip)
+
+    token = create_token(username, session_id)
+    resp = RedirectResponse(url="/dashboard", status_code=303)
+    resp.set_cookie(
+        key="token",
+        value=token,
+        httponly=True,
+        secure=SESSION_COOKIE_SECURE,
+        samesite="lax",
+        max_age=21600,
+    )
     return resp
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
-    key: str | None = None,  # 👈 NOVO
     admin=Depends(require_admin),
     db: Session = Depends(get_db_session),
 ):
-    # 🔒 BLOQUEIO POR CHAVE SECRETA
-    if key != ADMIN_SECRET_KEY:
-        return HTMLResponse("<h3>404</h3>", status_code=404)
 
     users = db.query(User).all()
     users_data = []
@@ -1248,7 +1321,17 @@ def dashboard(
 
 
 @app.get("/logout")
-def logout():
+def logout(request: Request, db: Session = Depends(get_db_session)):
+    token = request.cookies.get("token")
+    data = decode_token(token) if token else None
+    if data:
+        username = (data.get("user") or "").strip()
+        user = db.query(User).filter(User.user == username).first()
+        if user:
+            user.active_session = None
+            db.add(user)
+            db.commit()
+
     resp = RedirectResponse(url="/admin-smartpro-459-panel")
     resp.delete_cookie("token")
     return resp
@@ -1264,7 +1347,7 @@ def add_user(
 ):
     existing = db.query(User).filter(User.user == username).first()
     if existing:
-        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+        return RedirectResponse(url="/dashboard", status_code=303)
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
     new_user = User(
@@ -1277,7 +1360,7 @@ def add_user(
     )
     db.add(new_user)
     db.commit()
-    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @app.post("/delete_user/{user_id}")
@@ -1286,7 +1369,7 @@ def delete_user(user_id: int, admin=Depends(require_admin), db: Session = Depend
     if user:
         db.delete(user)
         db.commit()
-    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @app.post("/toggle_user/{user_id}/{state}")
@@ -1296,14 +1379,14 @@ def toggle_user(user_id: int, state: int, admin=Depends(require_admin), db: Sess
         user.enabled = bool(state)
         db.add(user)
         db.commit()
-    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 @app.get("/edit_trial/{user_id}", response_class=HTMLResponse)
 def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+        return RedirectResponse(url="/dashboard", status_code=303)
     return HTMLResponse(
         content=f"""
     <html>
@@ -1356,7 +1439,7 @@ def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin)
             <input type="number" name="trial_days" min="1" value="7" required><br>
             <button type="submit">Salvar</button>
           </form>
-          <p><a href="/dashboard?key=macdsmartpro_admin" style="color:#60a5fa;">Voltar</a></p>
+          <p><a href="/dashboard" style="color:#60a5fa;">Voltar</a></p>
         </div>
       </body>
     </html>
@@ -1371,7 +1454,7 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
         user.trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
         db.add(user)
         db.commit()
-    return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
 
 
 
@@ -1699,20 +1782,16 @@ def api_users_summary(admin=Depends(require_admin), db: Session = Depends(get_db
 def user_info_page(
     request: Request,
     username: str,
-    key: str | None = None,  # 🔐 chave secreta do admin
     admin=Depends(require_admin),
     db: Session = Depends(get_db_session)
 ):
-    # 🔒 Proteção por chave (igual ao dashboard)
-    if key != ADMIN_SECRET_KEY:
-        return HTMLResponse("<h3>404</h3>", status_code=404)
 
     # 🔥 LINHA CRÍTICA QUE FALTAVA (obrigatória)
     user = db.query(User).filter(User.user == username).first()
 
     # Se usuário não existir, volta ao painel seguro
     if not user:
-        return RedirectResponse(url=f"/dashboard?key={ADMIN_SECRET_KEY}", status_code=303)
+        return RedirectResponse(url="/dashboard", status_code=303)
 
     created_at = user.created_at.isoformat() if user.created_at else ""
     last_login = user.last_login.isoformat() if user.last_login else "Nunca"
@@ -1829,9 +1908,9 @@ def user_info_page(
             <span class="value">{user.login_count or 0}</span>
           </div>
 
-          <a class="btn" href="/dashboard?key={ADMIN_SECRET_KEY}">⬅ Voltar ao Painel</a>
+          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
           &nbsp;
-          <a class="btn" href="/user_trades/{username}?key={ADMIN_SECRET_KEY}">📊 Ver Trades</a>
+          <a class="btn" href="/user_trades/{username}">📊 Ver Trades</a>
         </div>
       </body>
     </html>
@@ -1841,13 +1920,9 @@ def user_info_page(
 def user_trades_page(
     request: Request,
     username: str,
-    key: str | None = None,  # 🔐 proteção por chave
     admin=Depends(require_admin),
     db: Session = Depends(get_db_session)
 ):
-    # 🔒 Proteção igual ao dashboard
-    if key != ADMIN_SECRET_KEY:
-        return HTMLResponse("<h3>404</h3>", status_code=404)
 
     trades = (
         db.query(Trade)
@@ -1925,7 +2000,7 @@ def user_trades_page(
       <body>
         <h2>Histórico de Trades — {username}</h2>
         <div style="text-align:center;">
-          <a class="btn" href="/dashboard?key={ADMIN_SECRET_KEY}">⬅ Voltar ao Painel</a>
+          <a class="btn" href="/dashboard">⬅ Voltar ao Painel</a>
         </div>
 
         <div style="text-align:center; margin-top:10px;">
