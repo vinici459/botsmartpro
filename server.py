@@ -1267,7 +1267,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     _clear_failed_login(ip)
 
     token = create_token(username, session_id)
-    resp = RedirectResponse(url="/dashboard", status_code=303)
+    resp = RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
     resp.set_cookie(
         key="token",
         value=token,
@@ -1279,7 +1279,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     return resp
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/admin-smartpro-459-panel/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
     admin=Depends(require_admin),
@@ -1347,7 +1347,7 @@ def add_user(
 ):
     existing = db.query(User).filter(User.user == username).first()
     if existing:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
     new_user = User(
@@ -1360,7 +1360,7 @@ def add_user(
     )
     db.add(new_user)
     db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
 
 
 @app.post("/delete_user/{user_id}")
@@ -1369,7 +1369,7 @@ def delete_user(user_id: int, admin=Depends(require_admin), db: Session = Depend
     if user:
         db.delete(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
 
 
 @app.post("/toggle_user/{user_id}/{state}")
@@ -1379,14 +1379,14 @@ def toggle_user(user_id: int, state: int, admin=Depends(require_admin), db: Sess
         user.enabled = bool(state)
         db.add(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
 
 
 @app.get("/edit_trial/{user_id}", response_class=HTMLResponse)
 def edit_trial_page(request: Request, user_id: int, admin=Depends(require_admin), db: Session = Depends(get_db_session)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
     return HTMLResponse(
         content=f"""
     <html>
@@ -1454,7 +1454,7 @@ def update_trial(user_id: int, trial_days: int = Form(...), admin=Depends(requir
         user.trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
         db.add(user)
         db.commit()
-    return RedirectResponse(url="/dashboard", status_code=303)
+    return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
 
 
 
@@ -1791,7 +1791,7 @@ def user_info_page(
 
     # Se usuário não existir, volta ao painel seguro
     if not user:
-        return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url="/admin-smartpro-459-panel/dashboard", status_code=303)
 
     created_at = user.created_at.isoformat() if user.created_at else ""
     last_login = user.last_login.isoformat() if user.last_login else "Nunca"
