@@ -25,8 +25,8 @@ load_dotenv()
 # ============================
 # 🔁 VERSIONAMENTO DO BOT
 # ============================
-APP_LATEST_VERSION = (os.getenv("APP_LATEST_VERSION") or "1.0").strip()
-APP_MIN_REQUIRED_VERSION = (os.getenv("APP_MIN_REQUIRED_VERSION") or "1.0").strip()
+APP_LATEST_VERSION = (os.getenv("APP_LATEST_VERSION") or "1.2").strip()
+APP_MIN_REQUIRED_VERSION = (os.getenv("APP_MIN_REQUIRED_VERSION") or "1.2").strip()
 
 
 
@@ -44,8 +44,8 @@ def _parse_version(v: str):
     return tuple(parts)
 
 def _version_info(client_version: str):
-    latest = os.getenv("APP_LATEST_VERSION", "1.0").strip()
-    min_required = os.getenv("APP_MIN_REQUIRED_VERSION", "1.0").strip()
+    latest = os.getenv("APP_LATEST_VERSION", "1.2").strip()
+    min_required = os.getenv("APP_MIN_REQUIRED_VERSION", "1.2").strip()
 
     cv = _parse_version(client_version)
     lv = _parse_version(latest)
