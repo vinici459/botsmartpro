@@ -346,11 +346,10 @@ def get_trial_days_left(trial_until):
 def root():
     return RedirectResponse(url="/portal")
 
-
 @app.get("/portal", response_class=HTMLResponse)
 def portal_page(request: Request):
     return templates.TemplateResponse(
-        "portal.html",
+        "portal.html",  # 🔥 TEM QUE SER STRING
         {
             "request": request,
             "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
