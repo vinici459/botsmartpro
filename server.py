@@ -348,13 +348,11 @@ def root():
 
 @app.get("/portal", response_class=HTMLResponse)
 def portal_page(request: Request):
-    return templates.TemplateResponse(
-        "portal.html",  # 🔥 TEM QUE SER STRING
-        {
-            "request": request,
-            "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
-        }
-    )
+    context = {
+        "request": request,
+        "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", "")
+    }
+    return templates.TemplateResponse(request, "portal.html", context)
 
 
 @app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
@@ -367,8 +365,7 @@ def renovar_page(
         cpf_clean = _only_digits(cpf_value or "")
 
         if not cpf_clean:
-            return templates.TemplateResponse(
-                "renew_payment.html",
+            return templates.TemplateResponse(request, "renew_payment.html",
                 {
                     "request": request,
                     "account": None,
@@ -385,8 +382,7 @@ def renovar_page(
         user = db.query(User).filter(User.cpf == cpf_clean).first()
 
         if not user:
-            return templates.TemplateResponse(
-                "renew_payment.html",
+            return templates.TemplateResponse(request, "renew_payment.html",
                 {
                     "request": request,
                     "account": None,
@@ -435,8 +431,7 @@ def renovar_page(
             "status_key": status_key,
         }
 
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -511,8 +506,7 @@ def renovar_criar_pagamento(
         }
 
     if not user:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": None,
@@ -527,8 +521,7 @@ def renovar_criar_pagamento(
     account = build_account(user)
 
     if not access_token:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -541,8 +534,7 @@ def renovar_criar_pagamento(
         )
 
     if payment_method != "pix":
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -578,8 +570,7 @@ def renovar_criar_pagamento(
             timeout=30,
         )
     except Exception as e:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -599,8 +590,7 @@ def renovar_criar_pagamento(
         except Exception:
             mp_error = response.text
 
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -622,8 +612,7 @@ def renovar_criar_pagamento(
     qr_base64 = tx.get("qr_code_base64", "")
 
     if not qr_code or not qr_base64:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -636,8 +625,7 @@ def renovar_criar_pagamento(
             }
         )
 
-    return templates.TemplateResponse(
-        "renew_payment.html",
+    return templates.TemplateResponse(request, "renew_payment.html",
         {
             "request": request,
             "account": account,
@@ -699,8 +687,7 @@ def renovar_confirmar_pagamento(
         }
 
     if not access_token:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": build_account(user) if user else None,
@@ -714,8 +701,7 @@ def renovar_confirmar_pagamento(
         )
 
     if not user:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": None,
@@ -741,8 +727,7 @@ def renovar_confirmar_pagamento(
             timeout=30,
         )
     except Exception as e:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -756,8 +741,7 @@ def renovar_confirmar_pagamento(
         )
 
     if response.status_code != 200:
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -774,8 +758,7 @@ def renovar_confirmar_pagamento(
     status = (payment.get("status") or "").strip().lower()
 
     if status != "approved":
-        return templates.TemplateResponse(
-            "renew_payment.html",
+        return templates.TemplateResponse(request, "renew_payment.html",
             {
                 "request": request,
                 "account": account,
@@ -807,8 +790,7 @@ def renovar_confirmar_pagamento(
 
     account = build_account(user)
 
-    return templates.TemplateResponse(
-        "renew_payment.html",
+    return templates.TemplateResponse(request, "renew_payment.html",
         {
             "request": request,
             "account": account,
@@ -1254,14 +1236,18 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
 
 @app.get("/admin-smartpro-459-panel", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "msg": ""})
+    return templates.TemplateResponse(request, "login.html", {"request": request, "msg": ""})
 
 
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db_session)):
     ip = _client_ip(request)
     if _is_login_blocked(ip):
-        return templates.TemplateResponse("login.html", {"request": request, "msg": "Muitas tentativas. Aguarde alguns minutos e tente novamente."})
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "msg": "Muitas tentativas. Aguarde alguns minutos e tente novamente."}
+        )
 
     username = (username or "").strip()
     password = (password or "").strip()
@@ -1270,19 +1256,35 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     user = db.query(User).filter(User.user == username).first()
     if not user:
         _register_failed_login(ip)
-        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "msg": invalid_msg}
+        )
 
     if username != "Vinici459" or user.role != "admin":
         _register_failed_login(ip)
-        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "msg": invalid_msg}
+        )
 
     if not bcrypt.checkpw(password.encode(), user.password.encode()):
         _register_failed_login(ip)
-        return templates.TemplateResponse("login.html", {"request": request, "msg": invalid_msg})
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "msg": invalid_msg}
+        )
 
     if not user.enabled:
         _register_failed_login(ip)
-        return templates.TemplateResponse("login.html", {"request": request, "msg": "Usuário desativado."})
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"request": request, "msg": "Usuário desativado."}
+        )
 
     session_id = str(uuid.uuid4())
     now = datetime.datetime.utcnow()
@@ -1305,7 +1307,6 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
         max_age=21600,
     )
     return resp
-
 
 @app.get("/admin-smartpro-459-panel/dashboard", response_class=HTMLResponse)
 def dashboard(
@@ -1338,8 +1339,7 @@ def dashboard(
             }
         )
 
-    return templates.TemplateResponse(
-        "dashboard.html",
+    return templates.TemplateResponse(request, "dashboard.html",
         {
             "request": request,
             "users": users_data,
