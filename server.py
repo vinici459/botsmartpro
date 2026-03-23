@@ -353,7 +353,7 @@ def portal_page(request: Request):
         "portal.html",
         {
             "request": request,
-            "signup_key": PUBLIC_SIGNUP_KEY,
+            "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
         }
     )
 
@@ -379,7 +379,7 @@ def renovar_page(
                     "pix_qr": None,
                     "pix_code": None,
                     "payment_id": None,
-                    "signup_key": PUBLIC_SIGNUP_KEY,
+                    "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
                 }
             )
 
@@ -397,7 +397,7 @@ def renovar_page(
                     "pix_qr": None,
                     "pix_code": None,
                     "payment_id": None,
-                    "signup_key": PUBLIC_SIGNUP_KEY,
+                    "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
                 }
             )
 
@@ -447,7 +447,7 @@ def renovar_page(
                 "pix_qr": None,
                 "pix_code": None,
                 "payment_id": None,
-                "signup_key": PUBLIC_SIGNUP_KEY,
+                "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
             }
         )
 
