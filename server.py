@@ -357,8 +357,7 @@ def portal_page(request: Request):
 
 @app.get("/votacao", response_class=HTMLResponse)
 def votacao_page(request: Request):
-    return templates.TemplateResponse("votacao.html", {"request": request})
-
+    return templates.TemplateResponse(request, "votacao.html", {"request": request})
 
 @app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
 def renovar_page(
