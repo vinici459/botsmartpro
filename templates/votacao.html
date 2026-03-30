@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Votação por Pix</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --card: rgba(255,255,255,0.06);
+      --line: rgba(255,255,255,0.10);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --blue1: #0f172a;
+      --blue2: #0ea5e9;
+      --red1: #1f0a0a;
+      --red2: #ef4444;
+      --shadow: 0 30px 80px rgba(0,0,0,.45);
+      --radius: 28px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(239,68,68,.12), transparent 24%),
+        linear-gradient(180deg, #020617 0%, #030712 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 26px 0;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--line);
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(250,204,21,.10);
+      border: 1px solid rgba(250,204,21,.18);
+      color: #fde68a;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 220px 1fr;
+      gap: 0;
+      align-items: stretch;
+      min-height: 860px;
+    }
+
+    .side {
+      position: relative;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .side.blue {
+      background:
+        radial-gradient(circle at center, rgba(56,189,248,.16), transparent 34%),
+        linear-gradient(180deg, rgba(14,165,233,.10), rgba(2,6,23,0));
+    }
+
+    .side.red {
+      background:
+        radial-gradient(circle at center, rgba(248,113,113,.16), transparent 34%),
+        linear-gradient(180deg, rgba(239,68,68,.10), rgba(2,6,23,0));
+    }
+
+    .visual-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: rgba(255,255,255,.03);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .visual-card img {
+      display: block;
+      width: 100%;
+      height: 630px;
+      object-fit: cover;
+    }
+
+    .content {
+      margin-top: 18px;
+      padding: 6px 2px 2px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+
+    .chip.blue {
+      color: #7dd3fc;
+      background: rgba(14,165,233,.12);
+      border-color: rgba(14,165,233,.25);
+    }
+
+    .chip.red {
+      color: #fca5a5;
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.25);
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(32px, 3vw, 48px);
+      line-height: 1.03;
+    }
+
+    .sub {
+      margin: 0 0 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted);
+      max-width: 580px;
+    }
+
+    .vote-box {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(2,6,23,.60);
+      padding: 18px;
+      backdrop-filter: blur(10px);
+    }
+
+    .vote-label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.04);
+      padding: 16px 18px;
+    }
+
+    .currency {
+      font-size: 22px;
+      font-weight: 900;
+      opacity: .95;
+    }
+
+    .side.blue .currency { color: #7dd3fc; }
+    .side.red .currency { color: #fca5a5; }
+
+    input {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: white;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
+    input::placeholder { color: #64748b; }
+
+    .hint {
+      margin: 10px 2px 0;
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 18px;
+      padding: 18px 16px;
+      color: white;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .01em;
+      cursor: pointer;
+      transition: transform .12s ease, opacity .12s ease;
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      opacity: .98;
+    }
+
+    .btn.blue {
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+    }
+
+    .btn.red {
+      background: linear-gradient(135deg, #dc2626, #f97316);
+    }
+
+    .center {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0;
+    }
+
+    .vs-shell {
+      width: 180px;
+      max-width: 100%;
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 22px rgba(255,255,255,.10));
+    }
+
+    .vs-shell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .divider {
+      position: absolute;
+      top: 8%;
+      bottom: 8%;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,.16), transparent);
+    }
+
+    .footer-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 0 26px 22px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .center {
+        order: -1;
+        padding: 22px 22px 0;
+      }
+
+      .divider {
+        display: none;
+      }
+
+      .vs-shell {
+        width: 160px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .wrap { padding: 12px; }
+      .hero-top { padding: 16px 16px 0; }
+      .side { padding: 16px; }
+      .visual-card img { height: 460px; }
+      .footer-note { padding: 0 16px 16px; }
+      input { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="hero">
+      <div class="hero-top">
+        <div class="badge">Votação por Pix • Página principal</div>
+        <div class="status">Pronta para integrar no servidor</div>
+      </div>
+
+      <section class="grid">
+        <section class="side blue">
+          <div>
+            <div class="visual-card">
+              <img src="/static/azul.png" alt="Lado azul" />
+            </div>
+
+            <div class="content">
+              <div class="chip blue">Lado Azul</div>
+              <h1>Vote no lado azul</h1>
+              <p class="sub">
+                Digite o valor que quiser, clique em votar e gere o QR Code Pix imediatamente.
+              </p>
+
+              <div class="vote-box">
+                <label class="vote-label" for="valorAzul">Valor do voto</label>
+                <div class="input-wrap">
+                  <span class="currency">R$</span>
+                  <input id="valorAzul" type="text" inputmode="decimal" placeholder="1,00" />
+                </div>
+                <div class="hint">
+                  O pagamento será gerado logo após o clique no botão.
+                </div>
+                <button class="btn blue">Votar no lado azul</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="center" aria-hidden="true">
+          <div class="divider"></div>
+          <div class="vs-shell">
+            <img src="/static/vs.png" alt="VS" />
+          </div>
+        </section>
+
+        <section class="side red">
+          <div>
+            <div class="visual-card">
+              <img src="/static/vermelho.png" alt="Lado vermelho" />
+            </div>
+
+            <div class="content">
+              <div class="chip red">Lado Vermelho</div>
+              <h1>Vote no lado vermelho</h1>
+              <p class="sub">
+                Digite o valor que quiser, clique em votar e gere o QR Code Pix imediatamente.
+              </p>
+
+              <div class="vote-box">
+                <label class="vote-label" for="valorVermelho">Valor do voto</label>
+                <div class="input-wrap">
+                  <span class="currency">R$</span>
+                  <input id="valorVermelho" type="text" inputmode="decimal" placeholder="1,00" />
+                </div>
+                <div class="hint">
+                  O pagamento será gerado logo após o clique no botão.
+                </div>
+                <button class="btn red">Votar no lado vermelho</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <div class="footer-note">
+        <span>Próxima etapa: gerar QR Code Pix e exibir “Aguardando validação”.</span>
+        <span>Depois do pagamento aprovado, redirecionar para a tela de resultados.</span>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
