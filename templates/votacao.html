@@ -7,14 +7,9 @@
   <style>
     :root {
       --bg: #020617;
-      --card: rgba(255,255,255,0.06);
-      --line: rgba(255,255,255,0.10);
+      --line: rgba(255,255,255,.10);
       --text: #f8fafc;
       --muted: #cbd5e1;
-      --blue1: #0f172a;
-      --blue2: #0ea5e9;
-      --red1: #1f0a0a;
-      --red2: #ef4444;
       --shadow: 0 30px 80px rgba(0,0,0,.45);
       --radius: 28px;
     }
@@ -33,7 +28,7 @@
     }
 
     .wrap {
-      max-width: 1380px;
+      max-width: 1440px;
       margin: 0 auto;
       padding: 22px;
     }
@@ -83,20 +78,57 @@
       text-transform: uppercase;
     }
 
+    .hero-title {
+      text-align: center;
+      padding: 10px 26px 6px;
+    }
+
+    .hero-title h2 {
+      margin: 6px 0 10px;
+      font-size: clamp(30px, 2.7vw, 44px);
+      line-height: 1.05;
+    }
+
+    .hero-title p {
+      margin: 0 auto;
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .alert {
+      margin: 12px 26px 0;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+    }
+
+    .alert.error {
+      background: rgba(239,68,68,.12);
+      color: #fecaca;
+      border-color: rgba(239,68,68,.22);
+    }
+
+    .alert.success {
+      background: rgba(34,197,94,.12);
+      color: #bbf7d0;
+      border-color: rgba(34,197,94,.22);
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: 1fr 220px 1fr;
+      grid-template-columns: 1fr 190px 1fr;
       gap: 0;
-      align-items: stretch;
-      min-height: 860px;
+      align-items: start;
+      min-height: 920px;
     }
 
     .side {
       position: relative;
       padding: 24px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
     }
 
     .side.blue {
@@ -122,7 +154,7 @@
     .visual-card img {
       display: block;
       width: 100%;
-      height: 630px;
+      height: 620px;
       object-fit: cover;
     }
 
@@ -157,8 +189,8 @@
 
     h1 {
       margin: 14px 0 8px;
-      font-size: clamp(32px, 3vw, 48px);
-      line-height: 1.03;
+      font-size: clamp(30px, 3vw, 46px);
+      line-height: 1.04;
     }
 
     .sub {
@@ -173,7 +205,7 @@
       margin-top: 18px;
       border: 1px solid var(--line);
       border-radius: 24px;
-      background: rgba(2,6,23,.60);
+      background: rgba(2,6,23,.62);
       padding: 18px;
       backdrop-filter: blur(10px);
     }
@@ -207,7 +239,7 @@
     .side.blue .currency { color: #7dd3fc; }
     .side.red .currency { color: #fca5a5; }
 
-    input {
+    input[type="text"] {
       width: 100%;
       border: 0;
       outline: none;
@@ -218,7 +250,7 @@
       letter-spacing: -.03em;
     }
 
-    input::placeholder { color: #64748b; }
+    input[type="text"]::placeholder { color: #64748b; }
 
     .hint {
       margin: 10px 2px 0;
@@ -255,12 +287,96 @@
       background: linear-gradient(135deg, #dc2626, #f97316);
     }
 
+    .payment-box {
+      margin-top: 14px;
+      display: none;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,.03);
+      padding: 16px;
+    }
+
+    .payment-box.active {
+      display: block;
+    }
+
+    .pay-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #fde68a;
+      background: rgba(250,204,21,.10);
+      border: 1px solid rgba(250,204,21,.18);
+      margin-bottom: 14px;
+    }
+
+    .qr {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1/1;
+      object-fit: contain;
+      background: white;
+      border-radius: 18px;
+      padding: 10px;
+      display: block;
+      margin: 0 auto 14px;
+    }
+
+    .code-area {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(2,6,23,.78);
+      color: #e2e8f0;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      outline: none;
+    }
+
+    .copy-btn {
+      width: 100%;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      color: white;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      opacity: .96;
+    }
+
+    .auto-status {
+      margin-top: 10px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
     .center {
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px 0;
+      min-height: 100%;
+    }
+
+    .vs-wrap {
+      text-align: center;
     }
 
     .vs-shell {
@@ -271,12 +387,29 @@
       align-items: center;
       justify-content: center;
       filter: drop-shadow(0 0 22px rgba(255,255,255,.10));
+      transition: transform .15s ease, filter .15s ease, opacity .15s ease;
+      text-decoration: none;
+    }
+
+    .vs-shell:hover {
+      transform: scale(1.03);
+      filter: drop-shadow(0 0 30px rgba(255,255,255,.18));
+      opacity: .98;
     }
 
     .vs-shell img {
       width: 100%;
       height: 100%;
       object-fit: contain;
+      display: block;
+    }
+
+    .center-text {
+      margin-top: 16px;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 230px;
     }
 
     .divider {
@@ -289,40 +422,31 @@
 
     .footer-note {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
+      justify-content: center;
       padding: 0 26px 22px;
       color: #94a3b8;
-      font-size: 13px;
+      font-size: 14px;
+      text-align: center;
     }
 
     @media (max-width: 1180px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .center {
-        order: -1;
-        padding: 22px 22px 0;
-      }
-
-      .divider {
-        display: none;
-      }
-
-      .vs-shell {
-        width: 160px;
-      }
+      .grid { grid-template-columns: 1fr; }
+      .center { order: -1; padding: 22px 22px 0; }
+      .divider { display: none; }
+      .vs-shell { width: 160px; }
+      .center-text { max-width: 100%; }
     }
 
     @media (max-width: 720px) {
       .wrap { padding: 12px; }
       .hero-top { padding: 16px 16px 0; }
+      .hero-title { padding: 8px 16px 4px; }
       .side { padding: 16px; }
-      .visual-card img { height: 460px; }
+      .visual-card img { height: 430px; }
       .footer-note { padding: 0 16px 16px; }
-      input { font-size: 26px; }
+      input[type="text"] { font-size: 26px; }
+      .qr { max-width: 240px; }
+      .alert { margin: 12px 16px 0; }
     }
   </style>
 </head>
@@ -331,14 +455,28 @@
     <main class="hero">
       <div class="hero-top">
         <div class="badge">Votação por Pix • Página principal</div>
-        <div class="status">Pronta para integrar no servidor</div>
+        <div class="status">Escolha um lado e gere seu Pix</div>
+      </div>
+
+      {% if error %}
+        <div class="alert error">{{ error }}</div>
+      {% endif %}
+      {% if success %}
+        <div class="alert success">{{ success }}</div>
+      {% endif %}
+
+      <div class="hero-title">
+        <h2>Escolha seu lado e vote com Pix</h2>
+        <p>
+          Você pode votar com o valor que quiser. A votação é simbólica. Participe da brincadeira.
+        </p>
       </div>
 
       <section class="grid">
         <section class="side blue">
           <div>
             <div class="visual-card">
-              <img src="/static/azul.png" alt="Lado azul" />
+              <img src="/static/azul.png" alt="Flávio Bolsonaro no lado azul" />
             </div>
 
             <div class="content">
@@ -349,31 +487,52 @@
               </p>
 
               <div class="vote-box">
-                <label class="vote-label" for="valorAzul">Valor do voto</label>
-                <div class="input-wrap">
-                  <span class="currency">R$</span>
-                  <input id="valorAzul" type="text" inputmode="decimal" placeholder="1,00" />
+                <form action="/votacao/criar-pagamento" method="post">
+                  <input type="hidden" name="lado" value="azul" />
+                  <label class="vote-label" for="valorAzul">Valor do voto</label>
+                  <div class="input-wrap">
+                    <span class="currency">R$</span>
+                    <input id="valorAzul" name="valor" type="text" inputmode="decimal" placeholder="1,00" value="{{ valor_azul if valor_azul else '' }}" />
+                  </div>
+                  <div class="hint">O voto será validado assim que o Pix for confirmado.</div>
+                  <button class="btn blue" type="submit">Votar no Flávio Bolsonaro</button>
+                </form>
+
+                <div
+                  class="payment-box {% if pix_qr_azul %}active{% endif %}"
+                  id="paymentAzul"
+                  data-payment-id="{% if payment_id_azul %}{{ payment_id_azul }}{% endif %}"
+                  data-expires-at="{% if expires_at_azul %}{{ expires_at_azul }}{% endif %}"
+                >
+                  <div class="pay-status">Aguardando validação</div>
+                  {% if pix_qr_azul %}
+                    <img class="qr" id="qrAzul" src="data:image/png;base64,{{ pix_qr_azul }}" alt="QR Code Pix do lado azul" />
+                  {% else %}
+                    <img class="qr" id="qrAzul" src="/static/vs.png" alt="QR Code Pix do lado azul" />
+                  {% endif %}
+                  <textarea class="code-area" id="codeAzul" readonly>{% if pix_code_azul %}{{ pix_code_azul }}{% else %}O código Pix gerado aparecerá aqui.{% endif %}</textarea>
+                  <button class="copy-btn" type="button" onclick="copyPixCode('codeAzul')">Copiar código Pix</button>
+                  <div class="auto-status" id="autoStatusAzul"></div>
                 </div>
-                <div class="hint">
-                  O pagamento será gerado logo após o clique no botão.
-                </div>
-                <button class="btn blue">Votar no lado azul</button>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="center" aria-hidden="true">
+        <section class="center">
           <div class="divider"></div>
-          <div class="vs-shell">
-            <img src="/static/vs.png" alt="VS" />
+          <div class="vs-wrap">
+            <a class="vs-shell" href="/portal" title="Voltar ao portal">
+              <img src="/static/vs.png" alt="VS" />
+            </a>
+            <div class="center-text">Clique no símbolo central para voltar ao portal principal.</div>
           </div>
         </section>
 
         <section class="side red">
           <div>
             <div class="visual-card">
-              <img src="/static/vermelho.png" alt="Lado vermelho" />
+              <img src="/static/vermelho.png" alt="Lula no lado vermelho" />
             </div>
 
             <div class="content">
@@ -384,15 +543,33 @@
               </p>
 
               <div class="vote-box">
-                <label class="vote-label" for="valorVermelho">Valor do voto</label>
-                <div class="input-wrap">
-                  <span class="currency">R$</span>
-                  <input id="valorVermelho" type="text" inputmode="decimal" placeholder="1,00" />
+                <form action="/votacao/criar-pagamento" method="post">
+                  <input type="hidden" name="lado" value="vermelho" />
+                  <label class="vote-label" for="valorVermelho">Valor do voto</label>
+                  <div class="input-wrap">
+                    <span class="currency">R$</span>
+                    <input id="valorVermelho" name="valor" type="text" inputmode="decimal" placeholder="1,00" value="{{ valor_vermelho if valor_vermelho else '' }}" />
+                  </div>
+                  <div class="hint">O voto será validado assim que o Pix for confirmado.</div>
+                  <button class="btn red" type="submit">Votar no Lula</button>
+                </form>
+
+                <div
+                  class="payment-box {% if pix_qr_vermelho %}active{% endif %}"
+                  id="paymentVermelho"
+                  data-payment-id="{% if payment_id_vermelho %}{{ payment_id_vermelho }}{% endif %}"
+                  data-expires-at="{% if expires_at_vermelho %}{{ expires_at_vermelho }}{% endif %}"
+                >
+                  <div class="pay-status">Aguardando validação</div>
+                  {% if pix_qr_vermelho %}
+                    <img class="qr" id="qrVermelho" src="data:image/png;base64,{{ pix_qr_vermelho }}" alt="QR Code Pix do lado vermelho" />
+                  {% else %}
+                    <img class="qr" id="qrVermelho" src="/static/vs.png" alt="QR Code Pix do lado vermelho" />
+                  {% endif %}
+                  <textarea class="code-area" id="codeVermelho" readonly>{% if pix_code_vermelho %}{{ pix_code_vermelho }}{% else %}O código Pix gerado aparecerá aqui.{% endif %}</textarea>
+                  <button class="copy-btn" type="button" onclick="copyPixCode('codeVermelho')">Copiar código Pix</button>
+                  <div class="auto-status" id="autoStatusVermelho"></div>
                 </div>
-                <div class="hint">
-                  O pagamento será gerado logo após o clique no botão.
-                </div>
-                <button class="btn red">Votar no lado vermelho</button>
               </div>
             </div>
           </div>
@@ -400,10 +577,116 @@
       </section>
 
       <div class="footer-note">
-        <span>Próxima etapa: gerar QR Code Pix e exibir “Aguardando validação”.</span>
-        <span>Depois do pagamento aprovado, redirecionar para a tela de resultados.</span>
+        O sistema vai redirecionar automaticamente para a página de resultados assim que o pagamento for aprovado.
       </div>
     </main>
   </div>
+
+  <script>
+    function copyPixCode(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+    }
+
+    function formatRemaining(ms) {
+      var total = Math.max(0, Math.floor(ms / 1000));
+      var min = String(Math.floor(total / 60)).padStart(2, "0");
+      var sec = String(total % 60).padStart(2, "0");
+      return min + ":" + sec;
+    }
+
+    function startPolling(paymentId, sideName, expiresAtIso) {
+      if (!paymentId) return;
+
+      var statusId = sideName === "azul" ? "autoStatusAzul" : "autoStatusVermelho";
+      var autoStatus = document.getElementById(statusId);
+      var stopped = false;
+
+      var fallbackMs = 15 * 60 * 1000;
+      var expiresAt = expiresAtIso ? new Date(expiresAtIso).getTime() : (Date.now() + fallbackMs);
+
+      function setStatus(text, color) {
+        if (!autoStatus) return;
+        autoStatus.textContent = text;
+        if (color) autoStatus.style.color = color;
+      }
+
+      function tickCountdown() {
+        if (stopped) return;
+
+        var remaining = expiresAt - Date.now();
+        if (remaining <= 0) {
+          stopped = true;
+          setStatus("Tempo do QR Code encerrado. Gere um novo Pix para continuar.", "#fca5a5");
+          return;
+        }
+
+        setStatus("Aguardando pagamento... Tempo restante: " + formatRemaining(remaining), "#fcd34d");
+        setTimeout(tickCountdown, 1000);
+      }
+
+      function checkStatus() {
+        if (stopped) return;
+
+        fetch("/votacao/status-pagamento?payment_id=" + encodeURIComponent(paymentId))
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (!data.ok) {
+              setStatus("Não foi possível verificar o pagamento agora. Tentando novamente...", "#cbd5e1");
+              return;
+            }
+
+            if (data.approved) {
+              stopped = true;
+              setStatus("Pagamento aprovado! Redirecionando para o resultado...", "#86efac");
+              setTimeout(function() {
+                window.location.href = "/resultado";
+              }, 1500);
+              return;
+            }
+
+            setStatus("Aguardando pagamento... Status atual: " + (data.status || "desconhecido"), "#fcd34d");
+          })
+          .catch(function() {
+            setStatus("Erro ao consultar o pagamento. Tentando novamente...", "#cbd5e1");
+          });
+      }
+
+      tickCountdown();
+      checkStatus();
+
+      var interval = setInterval(function() {
+        if (stopped) {
+          clearInterval(interval);
+          return;
+        }
+        checkStatus();
+      }, 5000);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      var azulBox = document.getElementById("paymentAzul");
+      var vermelhoBox = document.getElementById("paymentVermelho");
+
+      if (azulBox) {
+        var paymentIdAzul = azulBox.getAttribute("data-payment-id") || "";
+        var expiresAtAzul = azulBox.getAttribute("data-expires-at") || "";
+        if (paymentIdAzul) {
+          startPolling(paymentIdAzul, "azul", expiresAtAzul);
+        }
+      }
+
+      if (vermelhoBox) {
+        var paymentIdVermelho = vermelhoBox.getAttribute("data-payment-id") || "";
+        var expiresAtVermelho = vermelhoBox.getAttribute("data-expires-at") || "";
+        if (paymentIdVermelho) {
+          startPolling(paymentIdVermelho, "vermelho", expiresAtVermelho);
+        }
+      }
+    });
+  </script>
 </body>
 </html>

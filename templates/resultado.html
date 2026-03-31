@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultado da Votação</title>
+  <style>
+    :root{
+      --bg:#020617;
+      --panel:#0b1220;
+      --panel-2:#0f172a;
+      --line:rgba(255,255,255,.08);
+      --text:#f8fafc;
+      --muted:#94a3b8;
+      --blue-a:#2563eb;
+      --blue-b:#06b6d4;
+      --red-a:#dc2626;
+      --red-b:#f97316;
+      --shadow:0 28px 70px rgba(0,0,0,.40);
+      --radius:26px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,.10), transparent 24%),
+        radial-gradient(circle at top right, rgba(239,68,68,.10), transparent 24%),
+        linear-gradient(180deg,#020617 0%,#030712 100%);
+      min-height:100vh;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:22px;
+    }
+
+    .hero{
+      border:1px solid var(--line);
+      border-radius:32px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      padding:22px 26px 0;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:#e2e8f0;
+    }
+
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      background:rgba(34,197,94,.10);
+      color:#bbf7d0;
+      border:1px solid rgba(34,197,94,.18);
+    }
+
+    .hero-title{
+      text-align:center;
+      padding:10px 26px 24px;
+    }
+
+    .hero-title h1{
+      margin:6px 0 10px;
+      font-size:clamp(30px, 3vw, 46px);
+      line-height:1.05;
+    }
+
+    .hero-title p{
+      margin:0 auto;
+      max-width:760px;
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.65;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:22px;
+      margin-top:22px;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card.blue{
+      background:
+        radial-gradient(circle at top center, rgba(56,189,248,.10), transparent 34%),
+        linear-gradient(180deg, rgba(37,99,235,.08), rgba(11,18,32,.96));
+    }
+
+    .card.red{
+      background:
+        radial-gradient(circle at top center, rgba(248,113,113,.10), transparent 34%),
+        linear-gradient(180deg, rgba(220,38,38,.08), rgba(11,18,32,.96));
+    }
+
+    .card-head{
+      padding:22px 22px 10px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid;
+    }
+
+    .chip.blue{
+      color:#7dd3fc;
+      background:rgba(14,165,233,.12);
+      border-color:rgba(14,165,233,.24);
+    }
+
+    .chip.red{
+      color:#fca5a5;
+      background:rgba(239,68,68,.12);
+      border-color:rgba(239,68,68,.24);
+    }
+
+    .name{
+      margin:14px 0 6px;
+      font-size:34px;
+      font-weight:900;
+      line-height:1.05;
+    }
+
+    .subname{
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.5;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      padding:16px 22px 0;
+    }
+
+    .stat{
+      border:1px solid var(--line);
+      border-radius:20px;
+      background:rgba(255,255,255,.04);
+      padding:16px;
+      text-align:center;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .stat-value{
+      margin-top:8px;
+      font-size:34px;
+      font-weight:900;
+      line-height:1;
+    }
+
+    .bars{
+      padding:18px 22px 22px;
+    }
+
+    .bar-block + .bar-block{
+      margin-top:16px;
+    }
+
+    .bar-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      font-size:14px;
+      color:#cbd5e1;
+    }
+
+    .bar-wrap{
+      width:100%;
+      height:20px;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+    }
+
+    .bar-fill{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-right:10px;
+      font-size:11px;
+      font-weight:900;
+      color:white;
+      white-space:nowrap;
+      min-width:54px;
+    }
+
+    .bar-fill.blue{
+      background:linear-gradient(135deg,var(--blue-a),var(--blue-b));
+    }
+
+    .bar-fill.red{
+      background:linear-gradient(135deg,var(--red-a),var(--red-b));
+    }
+
+    .summary{
+      margin-top:22px;
+      border:1px solid var(--line);
+      border-radius:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+
+    .summary h2{
+      margin:0 0 12px;
+      font-size:28px;
+    }
+
+    .summary p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:15px;
+    }
+
+    .summary-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .summary-box{
+      border:1px solid var(--line);
+      border-radius:20px;
+      background:rgba(255,255,255,.04);
+      padding:16px;
+      text-align:center;
+    }
+
+    .summary-box .k{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .summary-box .v{
+      margin-top:8px;
+      font-size:28px;
+      font-weight:900;
+      line-height:1;
+    }
+
+    .links{
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:22px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      min-width:200px;
+      padding:15px 18px;
+      border-radius:18px;
+      font-size:15px;
+      font-weight:900;
+      color:white;
+      border:1px solid var(--line);
+      transition:transform .12s ease, opacity .12s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      opacity:.98;
+    }
+
+    .btn.blue{
+      background:linear-gradient(135deg,var(--blue-a),var(--blue-b));
+    }
+
+    .btn.red{
+      background:linear-gradient(135deg,var(--red-a),var(--red-b));
+    }
+
+    .footer{
+      margin-top:18px;
+      text-align:center;
+      color:#64748b;
+      font-size:13px;
+    }
+
+    @media (max-width: 960px){
+      .cards{grid-template-columns:1fr}
+      .summary-grid{grid-template-columns:1fr 1fr}
+    }
+
+    @media (max-width: 640px){
+      .wrap{padding:12px}
+      .hero-top{padding:16px 16px 0}
+      .hero-title{padding:8px 16px 18px}
+      .stats{grid-template-columns:1fr}
+      .summary{padding:16px}
+      .summary-grid{grid-template-columns:1fr}
+      .name{font-size:28px}
+      .stat-value{font-size:28px}
+      .summary-box .v{font-size:24px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="badge">Resultado da votação • Em tempo real</div>
+        <div class="status">Pagamentos aprovados</div>
+      </div>
+
+      <div class="hero-title">
+        <h1>Resultado da votação</h1>
+      </div>
+    </section>
+
+    <section class="cards">
+      <article class="card blue">
+        <div class="card-head">
+          <div class="chip blue">Lado Azul</div>
+          <div class="name">Flávio Bolsonaro</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Votos</div>
+            <div class="stat-value">{{ votos_azul }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Peso</div>
+            <div class="stat-value">{{ pct_peso_azul }}%</div>
+          </div>
+        </div>
+
+        <div class="bars">
+          <div class="bar-block">
+            <div class="bar-top">
+              <span>Popularidade</span>
+              <strong>{{ pct_votos_azul }}%</strong>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-fill blue" data-width="{{ pct_votos_azul }}">{{ pct_votos_azul }}%</div>
+            </div>
+          </div>
+
+          <div class="bar-block">
+            <div class="bar-top">
+              <span>Força por peso</span>
+              <strong>{{ pct_peso_azul }}%</strong>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-fill blue" data-width="{{ pct_peso_azul }}">{{ pct_peso_azul }}%</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card red">
+        <div class="card-head">
+          <div class="chip red">Lado Vermelho</div>
+          <div class="name">Lula</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Votos</div>
+            <div class="stat-value">{{ votos_vermelho }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Peso</div>
+            <div class="stat-value">{{ pct_peso_vermelho }}%</div>
+          </div>
+        </div>
+
+        <div class="bars">
+          <div class="bar-block">
+            <div class="bar-top">
+              <span>Popularidade</span>
+              <strong>{{ pct_votos_vermelho }}%</strong>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-fill red" data-width="{{ pct_votos_vermelho }}">{{ pct_votos_vermelho }}%</div>
+            </div>
+          </div>
+
+          <div class="bar-block">
+            <div class="bar-top">
+              <span>Força por peso</span>
+              <strong>{{ pct_peso_vermelho }}%</strong>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-fill red" data-width="{{ pct_peso_vermelho }}">{{ pct_peso_vermelho }}%</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="summary">
+      <h2>Painel geral</h2>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="k">Total de votos</div>
+          <div class="v">{{ total_votos }}</div>
+        </div>
+
+        <div class="summary-box">
+          <div class="k">Peso total</div>
+          <div class="v">{{ total_peso }}</div>
+        </div>
+
+        <div class="summary-box">
+          <div class="k">Líder por votos</div>
+          <div class="v">{% if pct_votos_azul > pct_votos_vermelho %}Azul{% elif pct_votos_vermelho > pct_votos_azul %}Vermelho{% else %}Empate{% endif %}</div>
+        </div>
+
+        <div class="summary-box">
+          <div class="k">Líder por peso</div>
+          <div class="v">{% if pct_peso_azul > pct_peso_vermelho %}Azul{% elif pct_peso_vermelho > pct_peso_azul %}Vermelho{% else %}Empate{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="links">
+        <a class="btn blue" href="/votacao">Voltar para a votação</a>
+        <a class="btn red" href="/portal">Ir para o portal</a>
+      </div>
+    </section>
+
+    <div class="footer">
+      Atualização automática habilitada
+    </div>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      window.location.reload();
+    }, 15000);
+  document.querySelectorAll('.bar-fill').forEach(el=>{
+  const w = el.dataset.width || 0;
+  el.style.width = w + "%";
+});
+</script>
+</body>
+</html>

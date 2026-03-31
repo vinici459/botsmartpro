@@ -212,6 +212,19 @@ class Trade(Base):
     ended_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+class VotingPayment(Base):
+    __tablename__ = "voting_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(String, unique=True, index=True, nullable=False)
+    lado = Column(String, index=True, nullable=False)  # "azul" ou "vermelho"
+    valor = Column(Float, default=0.0)
+    peso = Column(Float, default=0.0)
+    status = Column(String, default="pending")
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)   
+
 
 def create_token(user: str, session_id: str):
     payload = {
@@ -338,6 +351,19 @@ def get_trial_days_left(trial_until):
         return max(0, remaining.days)
     except Exception:
         return "-"
+    
+def _parse_brl_value(raw: str) -> float:
+    v = (raw or "").strip()
+    v = v.replace("R$", "").replace(" ", "")
+    if "," in v:
+        v = v.replace(".", "").replace(",", ".")
+    return round(float(v), 2)
+
+
+def _pct(part: float, total: float) -> float:
+    if total <= 0:
+        return 0.0
+    return round((part / total) * 100.0, 2)    
 # ==========================
 # 🔄 PÁGINA DE RENOVAÇÃO
 # ==========================
@@ -357,7 +383,106 @@ def portal_page(request: Request):
 
 @app.get("/votacao", response_class=HTMLResponse)
 def votacao_page(request: Request):
-    return templates.TemplateResponse(request, "votacao.html", {"request": request})
+    return templates.TemplateResponse(
+        request,
+        "votacao.html",
+        {
+            "request": request,
+            "error": None,
+            "success": None,
+            "valor_azul": "",
+            "valor_vermelho": "",
+            "pix_qr_azul": None,
+            "pix_code_azul": None,
+            "payment_id_azul": None,
+            "expires_at_azul": None,
+            "pix_qr_vermelho": None,
+            "pix_code_vermelho": None,
+            "payment_id_vermelho": None,
+            "expires_at_vermelho": None,
+        }
+    )
+
+@app.get("/votacao/status-pagamento")
+def votacao_status_pagamento(
+    payment_id: str,
+    db: Session = Depends(get_db_session),
+):
+    access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
+
+    if not access_token:
+        return {"ok": False, "reason": "missing_access_token"}
+
+    payment_id = (payment_id or "").strip()
+    if not payment_id:
+        return {"ok": False, "reason": "missing_payment_id"}
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        response = requests.get(
+            f"https://api.mercadopago.com/v1/payments/{payment_id}",
+            headers=headers,
+            timeout=30,
+        )
+    except Exception as e:
+        return {"ok": False, "reason": "request_error", "detail": str(e)}
+
+    if response.status_code != 200:
+        return {"ok": False, "reason": "mp_lookup_failed", "status_code": response.status_code}
+
+    payment = response.json()
+    status = (payment.get("status") or "").strip().lower()
+
+    item = db.query(VotingPayment).filter(VotingPayment.payment_id == payment_id).first()
+    if item:
+        item.status = status
+        if status == "approved" and not item.approved_at:
+            item.approved_at = datetime.datetime.utcnow()
+        db.add(item)
+        db.commit()
+
+    return {
+        "ok": True,
+        "approved": status == "approved",
+        "status": status,
+    }
+
+@app.get("/resultado", response_class=HTMLResponse)
+def resultado_page(
+    request: Request,
+    db: Session = Depends(get_db_session),
+):
+    approved = db.query(VotingPayment).filter(VotingPayment.status == "approved").all()
+
+    votos_azul = sum(1 for p in approved if p.lado == "azul")
+    votos_vermelho = sum(1 for p in approved if p.lado == "vermelho")
+
+    peso_azul = round(sum(float(p.peso or 0) for p in approved if p.lado == "azul"), 2)
+    peso_vermelho = round(sum(float(p.peso or 0) for p in approved if p.lado == "vermelho"), 2)
+
+    total_votos = votos_azul + votos_vermelho
+    total_peso = round(peso_azul + peso_vermelho, 2)
+
+    return templates.TemplateResponse(
+        request,
+        "resultado.html",
+        {
+            "request": request,
+            "votos_azul": votos_azul,
+            "votos_vermelho": votos_vermelho,
+            "peso_azul": peso_azul,
+            "peso_vermelho": peso_vermelho,
+            "total_votos": total_votos,
+            "total_peso": total_peso,
+            "pct_votos_azul": _pct(votos_azul, total_votos),
+            "pct_votos_vermelho": _pct(votos_vermelho, total_votos),
+            "pct_peso_azul": _pct(peso_azul, total_peso),
+            "pct_peso_vermelho": _pct(peso_vermelho, total_peso),
+        }
+    )
 
 @app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
 def renovar_page(
