@@ -217,14 +217,13 @@ class VotingPayment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     payment_id = Column(String, unique=True, index=True, nullable=False)
-    lado = Column(String, index=True, nullable=False)  # "azul" ou "vermelho"
+    lado = Column(String, index=True, nullable=False)
     valor = Column(Float, default=0.0)
     peso = Column(Float, default=0.0)
     status = Column(String, default="pending")
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    approved_at = Column(DateTime, nullable=True)   
-
+    approved_at = Column(DateTime, nullable=True)
 
 def create_token(user: str, session_id: str):
     payload = {
@@ -401,6 +400,150 @@ def votacao_page(request: Request):
             "payment_id_vermelho": None,
             "expires_at_vermelho": None,
         }
+    )
+
+@app.post("/votacao/criar-pagamento", response_class=HTMLResponse)
+def votacao_criar_pagamento(
+    request: Request,
+    lado: str = Form(...),
+    valor: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
+    lado = (lado or "").strip().lower()
+
+    def render_page(
+        *,
+        error=None,
+        success=None,
+        valor_azul="",
+        valor_vermelho="",
+        pix_qr_azul=None,
+        pix_code_azul=None,
+        payment_id_azul=None,
+        expires_at_azul=None,
+        pix_qr_vermelho=None,
+        pix_code_vermelho=None,
+        payment_id_vermelho=None,
+        expires_at_vermelho=None,
+    ):
+        return templates.TemplateResponse(
+            request,
+            "votacao.html",
+            {
+                "request": request,
+                "error": error,
+                "success": success,
+                "valor_azul": valor_azul,
+                "valor_vermelho": valor_vermelho,
+                "pix_qr_azul": pix_qr_azul,
+                "pix_code_azul": pix_code_azul,
+                "payment_id_azul": payment_id_azul,
+                "expires_at_azul": expires_at_azul,
+                "pix_qr_vermelho": pix_qr_vermelho,
+                "pix_code_vermelho": pix_code_vermelho,
+                "payment_id_vermelho": payment_id_vermelho,
+                "expires_at_vermelho": expires_at_vermelho,
+            }
+        )
+
+    if lado not in {"azul", "vermelho"}:
+        return render_page(error="Lado inválido.")
+
+    if not access_token:
+        return render_page(error="MP_ACCESS_TOKEN_PROD não configurado no Railway.")
+
+    try:
+        amount = _parse_brl_value(valor)
+    except Exception:
+        return render_page(error="Valor inválido. Digite um valor numérico válido.")
+
+    if amount <= 0:
+        return render_page(error="O valor do voto precisa ser maior que zero.")
+
+    description = (
+        "Votacao - Lado Azul - Flavio Bolsonaro"
+        if lado == "azul"
+        else "Votacao - Lado Vermelho - Lula"
+    )
+
+    payment_data = {
+        "transaction_amount": amount,
+        "description": description,
+        "payment_method_id": "pix",
+        "payer": {
+            "email": "pagamentos@botsmartpro.com"
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": str(uuid.uuid4()),
+    }
+
+    try:
+        response = requests.post(
+            "https://api.mercadopago.com/v1/payments",
+            json=payment_data,
+            headers=headers,
+            timeout=30,
+        )
+    except Exception as e:
+        return render_page(error=f"Erro de conexão com o Mercado Pago: {e}")
+
+    if response.status_code != 201:
+        try:
+            mp_error = response.json()
+        except Exception:
+            mp_error = response.text
+        return render_page(error=f"Erro ao criar pagamento Pix: {mp_error}")
+
+    payment = response.json()
+
+    payment_id = str(payment.get("id") or "").strip()
+    status = (payment.get("status") or "pending").strip().lower()
+    expires_at = payment.get("date_of_expiration")
+
+    tx = payment.get("point_of_interaction", {}).get("transaction_data", {})
+    qr_code = tx.get("qr_code", "")
+    qr_base64 = tx.get("qr_code_base64", "")
+
+    if not payment_id or not qr_code or not qr_base64:
+        return render_page(error="O Mercado Pago respondeu, mas não retornou os dados completos do Pix.")
+
+    existing = db.query(VotingPayment).filter(VotingPayment.payment_id == payment_id).first()
+    if not existing:
+        item = VotingPayment(
+            payment_id=payment_id,
+            lado=lado,
+            valor=amount,
+            peso=amount,
+            status=status,
+            description=description,
+        )
+        db.add(item)
+        db.commit()
+
+    success_msg = "Pix gerado com sucesso. Agora é só pagar e aguardar a validação."
+
+    if lado == "azul":
+        return render_page(
+            success=success_msg,
+            valor_azul=valor,
+            pix_qr_azul=qr_base64,
+            pix_code_azul=qr_code,
+            payment_id_azul=payment_id,
+            expires_at_azul=expires_at,
+        )
+
+    return render_page(
+        success=success_msg,
+        valor_vermelho=valor,
+        pix_qr_vermelho=qr_base64,
+        pix_code_vermelho=qr_code,
+        payment_id_vermelho=payment_id,
+        expires_at_vermelho=expires_at,
     )
 
 @app.get("/votacao/status-pagamento")
