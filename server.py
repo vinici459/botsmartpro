@@ -716,7 +716,7 @@ def resultado_page(
     total_votos = votos_azul + votos_vermelho
     total_peso = round(peso_azul + peso_vermelho, 2)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "resultado.html",
         {
@@ -733,6 +733,13 @@ def resultado_page(
             "pct_peso_vermelho": _pct(peso_vermelho, total_peso),
         }
     )
+
+    # 🔒 BLOQUEIO DE CACHE
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    return response
 
 @app.api_route("/renovar", methods=["GET", "POST"], response_class=HTMLResponse)
 def renovar_page(
