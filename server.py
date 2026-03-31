@@ -390,22 +390,33 @@ def _parse_brl_value(raw: str) -> float:
 def _pct(part: float, total: float) -> float:
     if total <= 0:
         return 0.0
-    return round((part / total) * 100.0, 2)    
-# ==========================
-# 🔄 PÁGINA DE RENOVAÇÃO
-# ==========================
-
-@app.get("/")
-def root():
-    return RedirectResponse(url="/portal")
+    return round((part / total) * 100.0, 2)  
+  
+@app.get("/", response_class=HTMLResponse)
+def root(request: Request):
+    context = {
+        "request": request,
+        "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
+        "download_url": os.getenv("BOT_DOWNLOAD_URL", ""),
+        "telegram_tutorial_url": os.getenv("TELEGRAM_TUTORIAL_URL", ""),
+        "api_tutorial_url": os.getenv("API_TUTORIAL_URL", "https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s"),
+        "support_telegram_url": os.getenv("SUPPORT_TELEGRAM_URL", "https://t.me/+252Xo3QVhsY1MmNh"),
+    }
+    return templates.TemplateResponse("portal.html", context)
 
 @app.get("/portal", response_class=HTMLResponse)
 def portal_page(request: Request):
     context = {
         "request": request,
-        "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", "")
+        "signup_key": os.getenv("PUBLIC_SIGNUP_KEY", ""),
+        "download_url": os.getenv("BOT_DOWNLOAD_URL", ""),
+        "telegram_tutorial_url": os.getenv("TELEGRAM_TUTORIAL_URL", ""),
+        "api_tutorial_url": os.getenv("API_TUTORIAL_URL", "https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s"),
+        "support_telegram_url": os.getenv("SUPPORT_TELEGRAM_URL", "https://t.me/+252Xo3QVhsY1MmNh"),
     }
-    return templates.TemplateResponse(request, "portal.html", context)
+    return templates.TemplateResponse("portal.html", context)
+
+
 
 
 @app.get("/votacao", response_class=HTMLResponse)

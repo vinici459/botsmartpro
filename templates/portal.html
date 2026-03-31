@@ -3,159 +3,543 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal — Bot Smart Pro</title>
-
+<title>Bot Smart Pro — Portal Oficial</title>
 <style>
 :root{
-  --bg:#0c1117;
-  --card:#141a22;
-  --line:rgba(255,255,255,.06);
-  --text:#e5e7eb;
-  --muted:#9ca3af;
+  --bg:#030712;
+  --bg-2:#06111f;
+  --card:rgba(10,18,32,.72);
+  --card-2:rgba(14,25,43,.78);
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(110,231,183,.18);
+  --text:#f8fafc;
+  --muted:#94a3b8;
   --green:#22c55e;
-  --green-dark:#16a34a;
+  --green-2:#16a34a;
   --blue:#2563eb;
-  --blue-dark:#1d4ed8;
-  --shadow:0 20px 50px rgba(0,0,0,.35);
-  --radius:20px;
+  --blue-2:#1d4ed8;
+  --cyan:#06b6d4;
+  --shadow:0 24px 80px rgba(0,0,0,.42);
+  --radius:28px;
 }
 
 *{box-sizing:border-box}
-
+html{scroll-behavior:smooth}
 body{
   margin:0;
-  font-family:Segoe UI, Arial, sans-serif;
+  font-family:"Segoe UI", Arial, sans-serif;
   color:var(--text);
-  background:linear-gradient(180deg,#0a0f14 0%,#0d141c 100%);
+  background:
+    radial-gradient(circle at top left, rgba(34,197,94,.10), transparent 22%),
+    radial-gradient(circle at top right, rgba(37,99,235,.12), transparent 24%),
+    radial-gradient(circle at center, rgba(6,182,212,.06), transparent 28%),
+    linear-gradient(180deg, #01050b 0%, #04101c 52%, #020712 100%);
+  min-height:100vh;
 }
+
+a{color:inherit}
 
 .wrap{
-  max-width:900px;
+  max-width:1240px;
   margin:0 auto;
-  padding:40px 18px 60px;
+  padding:24px 18px 70px;
 }
 
-.header{
-  text-align:center;
-  margin-bottom:50px;
-}
-
-.header img{
-  width:95px;
-  margin-bottom:18px;
-}
-
-.header h1{
-  margin:0;
-  font-size:40px;
-}
-
-.header p{
-  margin-top:14px;
-  color:var(--muted);
-  font-size:15px;
-}
-
-.card{
-  background:var(--card);
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:14px 18px;
+  margin-bottom:22px;
   border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:28px;
-  margin-bottom:26px;
+  border-radius:20px;
+  background:rgba(6,12,24,.58);
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 40px rgba(0,0,0,.22);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand-mark{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  object-fit:cover;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 0 24px rgba(34,197,94,.18);
+}
+
+.brand h1{
+  margin:0;
+  font-size:18px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+
+.brand p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.nav{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.nav a{
+  text-decoration:none;
+  font-size:13px;
+  color:#dbeafe;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.03);
+  transition:.18s ease;
+}
+
+.nav a:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.15);
+  background:rgba(255,255,255,.06);
+}
+
+.hero{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:1.08fr .92fr;
+  gap:24px;
+  padding:26px;
+  border-radius:36px;
+  border:1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+    radial-gradient(circle at top center, rgba(34,197,94,.08), transparent 34%);
   box-shadow:var(--shadow);
 }
 
-.card h3{
-  margin:0 0 8px;
-  font-size:20px;
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  background:linear-gradient(135deg, rgba(34,197,94,.12), rgba(37,99,235,.06), transparent 45%);
+  pointer-events:none;
 }
 
-.card p{
-  margin:0 0 20px;
-  color:var(--muted);
-  font-size:14px;
+.hero-copy,
+.hero-visual{position:relative;z-index:1}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 15px;
+  border-radius:999px;
+  border:1px solid rgba(34,197,94,.20);
+  background:rgba(34,197,94,.08);
+  color:#bbf7d0;
+  font-weight:800;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
 }
 
-.button{
+.hero h2{
+  margin:18px 0 14px;
+  font-size:clamp(34px, 5vw, 62px);
+  line-height:1.02;
+  letter-spacing:-.03em;
+}
+
+.hero p.lead{
+  margin:0;
+  max-width:640px;
+  color:#cbd5e1;
+  font-size:17px;
+  line-height:1.75;
+}
+
+.hero-actions{
   display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:26px;
+}
+
+.cta,
+.cta-outline{
+  display:inline-flex;
   align-items:center;
   justify-content:center;
   gap:10px;
+  min-height:58px;
+  padding:0 22px;
+  border-radius:18px;
+  font-size:15px;
+  font-weight:800;
   text-decoration:none;
-  font-weight:700;
-  font-size:16px;
-  height:58px;
-  border-radius:16px;
-  transition:.2s;
+  transition:.18s ease;
 }
 
-.button:hover{
+.cta{
+  color:white;
+  background:linear-gradient(135deg, var(--green), var(--green-2));
+  box-shadow:0 16px 36px rgba(34,197,94,.20);
+}
+
+.cta-outline{
+  color:#dbeafe;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+}
+
+.cta:hover,
+.cta-outline:hover{
   transform:translateY(-2px);
-  opacity:.95;
+  opacity:.98;
 }
 
-.green{
-  background:linear-gradient(135deg,var(--green),var(--green-dark));
-  color:white;
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:14px;
+  margin-top:26px;
 }
 
-.blue{
-  background:linear-gradient(135deg,var(--blue),var(--blue-dark));
-  color:white;
+.metric{
+  padding:16px 16px 14px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.03);
 }
 
+.metric strong{
+  display:block;
+  font-size:22px;
+  margin-bottom:6px;
+}
+
+.metric span{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.hero-visual{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.visual-shell{
+  width:100%;
+  max-width:490px;
+  padding:14px;
+  border-radius:32px;
+  border:1px solid var(--line-strong);
+  background:linear-gradient(180deg, rgba(8,18,30,.82), rgba(4,12,22,.92));
+  box-shadow:0 24px 80px rgba(0,0,0,.38), 0 0 70px rgba(34,197,94,.08);
+}
+
+.visual-shell img{
+  width:100%;
+  display:block;
+  border-radius:24px;
+  object-fit:cover;
+}
+
+.section-title{
+  margin:34px 0 16px;
+}
+
+.section-title h3{
+  margin:0;
+  font-size:28px;
+}
+
+.section-title p{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:18px;
+}
+
+.card{
+  position:relative;
+  overflow:hidden;
+  padding:24px;
+  border-radius:26px;
+  border:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(13,22,39,.82), rgba(10,18,31,.72));
+  box-shadow:var(--shadow);
+}
+
+.card::after{
+  content:"";
+  position:absolute;
+  inset:auto -80px -80px auto;
+  width:180px;
+  height:180px;
+  background:radial-gradient(circle, rgba(34,197,94,.11), transparent 60%);
+  pointer-events:none;
+}
+
+.card .eyebrow{
+  display:inline-flex;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.03);
+  color:#cbd5e1;
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.card h4{
+  margin:16px 0 10px;
+  font-size:26px;
+  line-height:1.1;
+}
+
+.card p{
+  margin:0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.card .actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:20px;
+}
+
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:54px;
+  padding:0 18px;
+  border-radius:16px;
+  text-decoration:none;
+  font-size:15px;
+  font-weight:800;
+  transition:.18s ease;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  opacity:.98;
+}
+
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green-2));color:white}
+.btn-blue{background:linear-gradient(135deg,var(--blue),var(--blue-2));color:white}
+.btn-dark{
+  color:#e2e8f0;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+}
+
+.support{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns:1.15fr .85fr;
+  gap:18px;
+}
+
+.support-box,
+.info-box{
+  padding:24px;
+  border-radius:26px;
+  border:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(13,22,39,.82), rgba(10,18,31,.72));
+  box-shadow:var(--shadow);
+}
+
+.support-box h4,
+.info-box h4{
+  margin:0 0 10px;
+  font-size:24px;
+}
+
+.support-box p,
+.info-box p,
+.info-box li{
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.info-box ul{
+  margin:14px 0 0;
+  padding-left:18px;
+}
+
+.footer{
+  margin-top:26px;
+  text-align:center;
+  color:#64748b;
+  font-size:13px;
+}
+
+@media (max-width: 1080px){
+  .hero,
+  .support{grid-template-columns:1fr}
+}
+
+@media (max-width: 780px){
+  .grid{grid-template-columns:1fr}
+  .metrics{grid-template-columns:1fr}
+  .topbar{padding:14px}
+  .hero{padding:18px}
+  .card,.support-box,.info-box{padding:20px}
+  .hero h2{font-size:38px}
+  .nav{display:none}
+}
 </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-mark" src="/static/smart_pro_hero.png" alt="Bot Smart Pro">
+        <div>
+          <h1>Bot Smart Pro</h1>
+          <p>Portal oficial • botsmartpro.com.br</p>
+        </div>
+      </div>
 
-<div class="wrap">
+      <nav class="nav">
+        <a href="#acesso">Acesso</a>
+        <a href="#configuracao">Configuração</a>
+        <a href="#suporte">Suporte</a>
+      </nav>
+    </header>
 
-<div class="header">
-  <img src="/static/bot_smart_pro.png" alt="Bot Smart Pro">
-  <h1>Smart Pro</h1>
-  <p>Download, configuração e acesso organizados em um único lugar.</p>
-</div>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="badge">Plataforma oficial • acesso rápido</div>
+        <h2>Seu portal oficial para entrar, configurar e operar com segurança.</h2>
+        <p class="lead">
+          Baixe o Bot Smart Pro, configure sua integração passo a passo, crie sua conta,
+          renove o acesso e fale com o suporte em um ambiente mais moderno, claro e profissional.
+        </p>
 
-<div class="card">
-  <h3>Baixar o Bot</h3>
-  <p>Faça o download da versão atual e comece a utilizar agora mesmo.</p>
-  <a class="button green"
-     href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing"
-     target="_blank">
-     ⬇ Baixar Bot Smart Pro
-  </a>
-</div>
+        <div class="hero-actions">
+          <a class="cta" href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing" target="_blank" rel="noopener noreferrer">⬇ Baixar Bot Smart Pro</a>
+          <a class="cta-outline" href="/renovar">🔄 Renovar acesso</a>
+        </div>
 
-<div class="card">
-  <h3>Configurar Telegram</h3>
-  <p>Veja o passo a passo completo para conectar o Telegram ao bot.</p>
-  <a class="button blue"
-     href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing"
-     target="_blank">
-     📘 Tutorial do Telegram
-  </a>
-</div>
+        <div class="metrics">
+          <div class="metric">
+            <strong>Download imediato</strong>
+            <span>Acesse a versão atual do bot em poucos segundos.</span>
+          </div>
+          <div class="metric">
+            <strong>Configuração guiada</strong>
+            <span>Tutoriais prontos para Telegram e integração de API.</span>
+          </div>
+          <div class="metric">
+            <strong>Suporte direto</strong>
+            <span>Canal rápido para dúvidas, ajuda e orientação.</span>
+          </div>
+        </div>
+      </div>
 
-<div class="card">
-  <h3>Primeiro Acesso</h3>
-  <p>Ainda não tem conta? Faça seu cadastro de forma rápida.</p>
-  <a class="button green"
-     href="/cadastro?key={{ signup_key }}">
-     📝 Criar Conta
-  </a>
-</div>
+      <div class="hero-visual">
+        <div class="visual-shell">
+          <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
+        </div>
+      </div>
+    </section>
 
-<div class="card">
-  <h3>Renovar Acesso</h3>
-  <p>Já é cliente? Renove sua assinatura de maneira simples e segura.</p>
-  <a class="button blue"
-     href="/renovar">
-     🔄 Renovar Acesso
-  </a>
-</div>
+    <div class="section-title" id="acesso">
+      <h3>Acesso e configuração</h3>
+      <p>Organizamos as principais ações do site em blocos mais claros, com navegação direta e visual mais forte.</p>
+    </div>
 
-</div>
+    <section class="grid">
+      <article class="card">
+        <span class="eyebrow">Download</span>
+        <h4>Baixar o Bot</h4>
+        <p>Faça o download da versão atual e inicie sua estrutura de operação com mais praticidade.</p>
+        <div class="actions">
+          <a class="btn btn-green" href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing" target="_blank" rel="noopener noreferrer">⬇ Baixar agora</a>
+        </div>
+      </article>
 
+      <article class="card" id="configuracao">
+        <span class="eyebrow">Telegram</span>
+        <h4>Configurar Telegram</h4>
+        <p>Abra o tutorial e siga o passo a passo para conectar seu Telegram ao bot com segurança.</p>
+        <div class="actions">
+          <a class="btn btn-blue" href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing" target="_blank" rel="noopener noreferrer">📘 Ver tutorial</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="eyebrow">API</span>
+        <h4>Tutorial de API</h4>
+        <p>Assista ao vídeo de configuração da API e deixe seu ambiente pronto para uso do jeito certo.</p>
+        <div class="actions">
+          <a class="btn btn-blue" href="https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s" target="_blank" rel="noopener noreferrer">▶ Assistir no YouTube</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <span class="eyebrow">Cadastro</span>
+        <h4>Primeiro acesso</h4>
+        <p>Ainda não tem conta? Faça seu cadastro e entre no ecossistema do Bot Smart Pro de forma rápida.</p>
+        <div class="actions">
+          <a class="btn btn-green" href="/cadastro?key={{ signup_key }}">📝 Criar conta</a>
+          <a class="btn btn-dark" href="/renovar">Já sou cliente</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="support" id="suporte">
+      <div class="support-box">
+        <h4>Suporte direto no Telegram</h4>
+        <p>
+          Precisa de ajuda com instalação, configuração ou acesso? Entre no canal de suporte e fale diretamente para tirar dúvidas.
+        </p>
+        <div class="actions">
+          <a class="btn btn-blue" href="https://t.me/+252Xo3QVhsY1MmNh" target="_blank" rel="noopener noreferrer">💬 Falar com o suporte</a>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <h4>O que esse portal entrega</h4>
+        <p>Uma página inicial mais profissional, alinhada com o novo domínio e com foco em clareza para o cliente.</p>
+        <ul>
+          <li>Visual mais futurista e premium.</li>
+          <li>Links principais separados por função.</li>
+          <li>Tutorial de API em vídeo.</li>
+          <li>Canal direto de suporte pelo Telegram.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="footer">
+      Bot Smart Pro • Portal oficial
+    </div>
+  </div>
 </body>
 </html>
