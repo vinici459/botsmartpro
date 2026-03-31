@@ -171,6 +171,30 @@ def ensure_payment_columns():
     except Exception as e:
         print("[DB] Erro ao garantir colunas de pagamento:", e)
 
+def ensure_voting_columns():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE voting_payments
+                ADD COLUMN IF NOT EXISTS view_token VARCHAR;
+            """))
+            conn.execute(text("""
+                ALTER TABLE voting_payments
+                ADD COLUMN IF NOT EXISTS view_used BOOLEAN DEFAULT FALSE;
+            """))
+            conn.execute(text("""
+                ALTER TABLE voting_payments
+                ADD COLUMN IF NOT EXISTS view_used_at TIMESTAMP;
+            """))
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_voting_payments_view_token ON voting_payments (view_token);"))
+            except Exception:
+                pass
+            conn.commit()
+            print("[DB] Colunas de visualização da votação verificadas/criadas.")
+    except Exception as e:
+        print("[DB] Erro ao garantir colunas da votação:", e)
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -224,6 +248,10 @@ class VotingPayment(Base):
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     approved_at = Column(DateTime, nullable=True)
+
+    view_token = Column(String, unique=True, index=True, nullable=True)
+    view_used = Column(Boolean, default=False)
+    view_used_at = Column(DateTime, nullable=True)
 
 def create_token(user: str, session_id: str):
     payload = {
@@ -406,11 +434,12 @@ def votacao_page(request: Request):
 def votacao_criar_pagamento(
     request: Request,
     lado: str = Form(...),
-    valor: str = Form(...),
+    valor: str = Form(""),
     db: Session = Depends(get_db_session),
 ):
     access_token = (os.getenv("MP_ACCESS_TOKEN_PROD") or "").strip()
     lado = (lado or "").strip().lower()
+    valor = (valor or "").strip()
 
     def render_page(
         *,
@@ -447,19 +476,22 @@ def votacao_criar_pagamento(
             }
         )
 
+    if not valor:
+        return render_page(error="Digite qualquer valor para votar.")
+
     if lado not in {"azul", "vermelho"}:
         return render_page(error="Lado inválido.")
 
     if not access_token:
-        return render_page(error="MP_ACCESS_TOKEN_PROD não configurado no Railway.")
+        return render_page(error="MP_ACCESS_TOKEN_PROD não configurado.")
 
     try:
         amount = _parse_brl_value(valor)
     except Exception:
-        return render_page(error="Valor inválido. Digite um valor numérico válido.")
+        return render_page(error="Digite um valor válido.")
 
     if amount <= 0:
-        return render_page(error="O valor do voto precisa ser maior que zero.")
+        return render_page(error="O valor deve ser maior que zero.")
 
     description = (
         "Votacao - Lado Azul - Flavio Bolsonaro"
@@ -582,22 +614,97 @@ def votacao_status_pagamento(
     item = db.query(VotingPayment).filter(VotingPayment.payment_id == payment_id).first()
     if item:
         item.status = status
-        if status == "approved" and not item.approved_at:
-            item.approved_at = datetime.datetime.utcnow()
+
+        if status == "approved":
+            if not item.approved_at:
+                item.approved_at = datetime.datetime.utcnow()
+
+            if not item.view_token:
+                item.view_token = str(uuid.uuid4())
+                item.view_used = False
+                item.view_used_at = None
+
         db.add(item)
         db.commit()
+        db.refresh(item)
+
+    if item and status == "approved" and item.view_token:
+        return {
+            "ok": True,
+            "approved": True,
+            "status": status,
+            "result_url": f"/resultado?view_token={item.view_token}",
+        }
 
     return {
         "ok": True,
-        "approved": status == "approved",
+        "approved": False,
         "status": status,
     }
 
 @app.get("/resultado", response_class=HTMLResponse)
 def resultado_page(
     request: Request,
+    view_token: str = "",
     db: Session = Depends(get_db_session),
 ):
+    token = (view_token or "").strip()
+
+    if not token:
+        return HTMLResponse(
+            """
+            <html><body style="background:#020617;color:white;font-family:Arial;text-align:center;padding-top:80px;">
+            <h2>Acesso não autorizado</h2>
+            <p>É necessário concluir um pagamento aprovado para visualizar o resultado.</p>
+            <p><a href="/votacao" style="color:#60a5fa;">Voltar para a votação</a></p>
+            </body></html>
+            """,
+            status_code=403,
+        )
+
+    payment = db.query(VotingPayment).filter(VotingPayment.view_token == token).first()
+
+    if not payment:
+        return HTMLResponse(
+            """
+            <html><body style="background:#020617;color:white;font-family:Arial;text-align:center;padding-top:80px;">
+            <h2>Link inválido</h2>
+            <p>Este link de visualização não é válido.</p>
+            <p><a href="/votacao" style="color:#60a5fa;">Voltar para a votação</a></p>
+            </body></html>
+            """,
+            status_code=403,
+        )
+
+    if payment.status != "approved":
+        return HTMLResponse(
+            """
+            <html><body style="background:#020617;color:white;font-family:Arial;text-align:center;padding-top:80px;">
+            <h2>Pagamento não aprovado</h2>
+            <p>O resultado só pode ser visualizado após a confirmação do Pix.</p>
+            <p><a href="/votacao" style="color:#60a5fa;">Voltar para a votação</a></p>
+            </body></html>
+            """,
+            status_code=403,
+        )
+
+    if payment.view_used:
+        return HTMLResponse(
+            """
+            <html><body style="background:#020617;color:white;font-family:Arial;text-align:center;padding-top:80px;">
+            <h2>Visualização já utilizada</h2>
+            <p>Este link de resultado já foi usado e não pode ser aberto novamente.</p>
+            <p><a href="/votacao" style="color:#60a5fa;">Voltar para a votação</a></p>
+            </body></html>
+            """,
+            status_code=403,
+        )
+
+    payment.view_used = True
+    payment.view_used_at = datetime.datetime.utcnow()
+    db.add(payment)
+    db.commit()
+
     approved = db.query(VotingPayment).filter(VotingPayment.status == "approved").all()
 
     votos_azul = sum(1 for p in approved if p.lado == "azul")
@@ -1151,6 +1258,7 @@ def startup():
     Base.metadata.create_all(bind=engine)
     ensure_cadastro_columns()
     ensure_payment_columns()
+    ensure_voting_columns()
 
     db: Session = SessionLocal()
     try:

@@ -643,7 +643,7 @@
               stopped = true;
               setStatus("Pagamento aprovado! Redirecionando para o resultado...", "#86efac");
               setTimeout(function() {
-                window.location.href = "/resultado";
+                window.location.href = data.result_url;
               }, 1500);
               return;
             }
