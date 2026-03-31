@@ -403,7 +403,7 @@ def root(request: Request):
             "download_url": os.getenv("BOT_DOWNLOAD_URL", ""),
             "telegram_tutorial_url": os.getenv("TELEGRAM_TUTORIAL_URL", ""),
             "api_tutorial_url": "https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s",
-            "support_telegram_url": "https://t.me/+252Xo3QVhsY1MmNh",
+            "support_telegram_url": "https://t.me/+sxqR0hhJsGViYWMx",
         }
     )
 
