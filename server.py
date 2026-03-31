@@ -395,6 +395,7 @@ def _pct(part: float, total: float) -> float:
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
     return templates.TemplateResponse(
+        request,
         "portal.html",
         {
             "request": request,
@@ -410,6 +411,7 @@ def root(request: Request):
 @app.get("/portal", response_class=HTMLResponse)
 def portal_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "portal.html",
         {
             "request": request,
