@@ -605,8 +605,8 @@
       var autoStatus = document.getElementById(statusId);
       var stopped = false;
 
-      var fallbackMs = 15 * 60 * 1000;
-      var expiresAt = expiresAtIso ? new Date(expiresAtIso).getTime() : (Date.now() + fallbackMs);
+      var fallbackMs = 15 * 60 * 1000; // 15 minutos
+      var expiresAt = Date.now() + fallbackMs;
 
       function setStatus(text, color) {
         if (!autoStatus) return;
@@ -620,7 +620,30 @@
         var remaining = expiresAt - Date.now();
         if (remaining <= 0) {
           stopped = true;
-          setStatus("Tempo do QR Code encerrado. Gere um novo Pix para continuar.", "#fca5a5");
+
+          setStatus("Tempo expirado. Gere um novo Pix para continuar.", "#fca5a5");
+
+          var qrId = sideName === "azul" ? "qrAzul" : "qrVermelho";
+          var codeId = sideName === "azul" ? "codeAzul" : "codeVermelho";
+          var qrEl = document.getElementById(qrId);
+          var codeEl = document.getElementById(codeId);
+          var copyBtn = qrEl ? qrEl.parentElement.querySelector(".copy-btn") : null;
+
+          if (qrEl) {
+            qrEl.style.opacity = "0.25";
+            qrEl.style.pointerEvents = "none";
+          }
+
+          if (codeEl) {
+            codeEl.value = "QR Code expirado. Gere um novo Pix para continuar.";
+          }
+
+          if (copyBtn) {
+            copyBtn.disabled = true;
+            copyBtn.style.opacity = "0.5";
+            copyBtn.style.cursor = "not-allowed";
+          }
+
           return;
         }
 
