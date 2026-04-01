@@ -284,8 +284,8 @@ a{color:inherit}
   width:100%;
   height:100%;
   display:block;
-  object-fit:cover;
-  object-position:center center;
+  object-fit:contain; 
+  background:#040b14; 
   border-radius:24px;
   transform-origin:center;
   will-change:transform, filter;
@@ -498,7 +498,7 @@ a{color:inherit}
 
 @keyframes slowZoom{
   0%{transform:scale(1)}
-  100%{transform:scale(1.05)}
+  100%{transform:scale(1.02)}
 }
 
 @keyframes shineSweep{
@@ -655,6 +655,16 @@ a{color:inherit}
   padding-left:18px;
 }
 
+.support-top{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+
+.full-width{
+  width:100%;
+}
+
 .footer{
   margin-top:26px;
   text-align:center;
@@ -667,6 +677,12 @@ a{color:inherit}
   .support{grid-template-columns:1fr}
   .hero-visual{margin-top:8px}
   .visual-shell{max-width:560px; margin:0 auto}
+}
+
+@media (max-width:1080px){
+  .support-top{
+    grid-template-columns:1fr;
+  }
 }
 
 @media (max-width: 780px){
@@ -731,7 +747,7 @@ a{color:inherit}
       <div class="hero-visual">
         <div class="visual-shell">
           <div id="slider" class="slider">
-            <div class="slide bot-slide active" data-time="5000">
+            <div class="slide bot-slide active" data-time="10000">
               <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
               <span class="fx bot-ring"></span>
               <span class="fx bot-scan"></span>
@@ -742,7 +758,7 @@ a{color:inherit}
               <img src="/static/votacao-banner.png" alt="Banner da votação">
               <span class="fx vote-aura"></span>
               <span class="fx vote-scanline"></span>
-              <div class="vote-overlay">Está rolando uma votação. Clique aqui para participar.</div>
+              <div class="vote-overlay">Está rolando uma votação acirrada. Não fique de fora — clique aqui e participe.</div>
             </a>
 
             <div class="slide binance-slide" data-time="10000">
@@ -791,46 +807,48 @@ a{color:inherit}
           <a class="btn btn-red" href="https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s" target="_blank" rel="noopener noreferrer">▶ Assistir no YouTube</a>
         </div>
       </article>
-
-      <article class="card">
-        <span class="eyebrow">Acesso</span>
-        <h4>Já tem conta?</h4>
-        <p>Renove seu acesso de forma rápida e continue utilizando o Bot Smart Pro sem interrupções.</p>
-        <div class="actions">
-          <a class="btn btn-dark" href="/renovar">🔄 Renovar acesso</a>
-        </div>
-      </article>
-
-      <article class="card">
-        <span class="eyebrow">Cadastro</span>
-        <h4>Criar conta</h4>
-        <p>Ainda não tem acesso? Faça seu cadastro.</p>
-        <div class="actions">
-          <a class="btn btn-green" href="/cadastro?key={{ signup_key }}">📝 Criar conta</a>
-        </div>
-      </article>
     </section>
 
     <section class="support" id="suporte">
-      <div class="support-box">
-        <h4>Telegram</h4>
-        <p>
-          Se surgir qualquer dúvida sobre instalação, configuração ou acesso, entre no grupo para tirar duvidas.
-        </p>
-        <div class="actions">
-          <a class="btn btn-blue" href="https://t.me/+sxqR0hhJsGViYWMx" target="_blank" rel="noopener noreferrer">💬 Grupo Telegram</a>
+
+      <!-- LINHA DE CIMA -->
+      <div class="support-top">
+
+        <!-- CRIAR CONTA -->
+        <div class="support-box">
+          <h4>Criar conta</h4>
+          <p>Ainda não tem acesso? Faça seu cadastro.</p>
+          <div class="actions">
+            <a class="btn btn-green" href="/cadastro?key={{ signup_key }}">📝 Criar conta</a>
+          </div>
         </div>
+
+        <!-- TELEGRAM -->
+        <div class="support-box">
+          <h4>Telegram</h4>
+          <p>
+            Se surgir qualquer dúvida sobre instalação, configuração ou acesso, entre no grupo para tirar dúvidas.
+          </p>
+          <div class="actions">
+            <a class="btn btn-blue" href="https://t.me/+sxqR0hhJsGViYWMx" target="_blank" rel="noopener noreferrer">
+              💬 Grupo Telegram
+            </a>
+          </div>
+        </div>
+
       </div>
 
-      <div class="info-box">
-        <h4>Tudo para  para você começar a operar</h4>        
+      <!-- LINHA DE BAIXO -->
+      <div class="info-box full-width">
+        <h4>Tudo para você começar a operar</h4>        
         <ul>
           <li>Download rápido do bot Smart Pro.</li>
           <li>Tutorial para configurar Telegram.</li>
           <li>Vídeo para configurar API.</li>
-          <li>Canal direto para o grupo do telegram.</li>
+          <li>Canal direto para o grupo do Telegram.</li>
         </ul>
       </div>
+
     </section>
 
     <div class="footer">
