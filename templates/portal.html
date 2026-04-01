@@ -239,8 +239,10 @@ a{color:inherit}
 }
 
 .visual-shell{
+  position:relative;
   width:100%;
   max-width:490px;
+  min-height:560px;
   padding:14px;
   border-radius:32px;
   border:1px solid var(--line-strong);
@@ -248,11 +250,92 @@ a{color:inherit}
   box-shadow:0 24px 80px rgba(0,0,0,.38), 0 0 70px rgba(34,197,94,.08);
 }
 
-.visual-shell img{
+.visual-slider{
+  position:relative;
   width:100%;
+  min-height:532px;
+  border-radius:24px;
+  overflow:hidden;
+}
+
+.visual-slide{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .9s ease;
+}
+
+.visual-slide.active{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.visual-slide img{
+  width:100%;
+  height:100%;
   display:block;
   border-radius:24px;
   object-fit:cover;
+}
+
+.visual-overlay{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:18px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+.visual-cta{
+  max-width:360px;
+  padding:16px 18px;
+  border-radius:22px;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg, rgba(2,6,23,.88), rgba(15,23,42,.94));
+  box-shadow:0 16px 36px rgba(0,0,0,.32);
+  backdrop-filter:blur(10px);
+}
+
+.visual-cta strong{
+  display:block;
+  font-size:18px;
+  line-height:1.25;
+  color:#ffffff;
+}
+
+.visual-cta span{
+  display:block;
+  margin-top:8px;
+  font-size:13px;
+  color:#cbd5e1;
+  line-height:1.55;
+}
+
+.visual-dots{
+  position:absolute;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  display:flex;
+  gap:8px;
+  z-index:3;
+}
+
+.visual-dot{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.28);
+  border:1px solid rgba(255,255,255,.15);
+  transition:.2s ease;
+}
+
+.visual-dot.active{
+  width:28px;
+  background:#22c55e;
 }
 
 .section-title{
@@ -442,10 +525,10 @@ a{color:inherit}
 
     <section class="hero">
       <div class="hero-copy">
-        <div class="badge">Plataforma oficial • acesso rápido</div>
+        <div class="badge">Plataforma oficial</div>
         <h2>Tudo que você precisa para começar e operar com o Bot Smart Pro</h2>
         <p class="lead">
-          Baixe o bot, configure sua conta, conecte sua API e fale com o suporte.
+          Baixe o bot, crie sua conta, configure sua API, renove seu acesso tudo em um só lugar.
           
         </p>
 
@@ -472,21 +555,40 @@ a{color:inherit}
 
       <div class="hero-visual">
         <div class="visual-shell">
-          <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
+          <div class="visual-slider" id="heroVisualSlider">
+            <div class="visual-slide active">
+              <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
+            </div>
+
+            <div class="visual-slide">
+              <img src="/static/votacao-banner.png" alt="Banner da votação">
+              <div class="visual-overlay">
+                <a class="visual-cta" href="/votacao">
+                  <strong>Está rolando uma votação. Clique aqui para participar.</strong>
+                  <span>Ao clicar, você será redirecionado para a página da votação.</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="visual-dots" id="heroVisualDots">
+              <span class="visual-dot active"></span>
+              <span class="visual-dot"></span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <div class="section-title" id="acesso">
       <h3>Acesso e configuração</h3>
-      <p>Escolha abaixo a opção que você precisa e siga para a próxima etapa de forma rápida e organizada.</p>
+      <p>Escolha abaixo a opção que você precisa e siga para a próxima etapa.</p>
     </div>
 
     <section class="grid">
       <article class="card">
         <span class="eyebrow">Download</span>
         <h4>Baixar o Bot</h4>
-        <p>Faça o download da versão atual e inicie sua estrutura de operação com mais praticidade.</p>
+        <p>Faça o download da versão atual.</p>
         <div class="actions">
           <a class="btn btn-green" href="https://drive.google.com/file/d/1p2e8FDor4Q_Lnq0SrUxROYxoyS9v4rUi/view?usp=sharing" target="_blank" rel="noopener noreferrer">⬇ Baixar agora</a>
         </div>
@@ -504,7 +606,7 @@ a{color:inherit}
       <article class="card">
         <span class="eyebrow">API</span>
         <h4>Tutorial de API</h4>
-        <p>Assista ao vídeo de configuração da API e deixe seu ambiente pronto para usar da forma correta.</p>
+        <p>Assista ao vídeo de configuração da API. A configuraçao de api é padrao, o video é somente uma indicação para a configuração.</p>
         <div class="actions">
           <a class="btn btn-red" href="https://www.youtube.com/watch?v=3J7AFW8uN0o&t=29s" target="_blank" rel="noopener noreferrer">▶ Assistir no YouTube</a>
         </div>
@@ -531,22 +633,22 @@ a{color:inherit}
 
     <section class="support" id="suporte">
       <div class="support-box">
-        <h4>Suporte direto no Telegram</h4>
+        <h4>Telegram</h4>
         <p>
-          Se surgir qualquer dúvida sobre instalação, configuração ou acesso, entre em contato pelo nosso canal de suporte.
+          Se surgir qualquer dúvida sobre instalação, configuração ou acesso, entre no grupo para tirar duvidas.
         </p>
         <div class="actions">
-          <a class="btn btn-blue" href="https://t.me/+sxqR0hhJsGViYWMx" target="_blank" rel="noopener noreferrer">💬 Falar com o suporte</a>
+          <a class="btn btn-blue" href="https://t.me/+sxqR0hhJsGViYWMx" target="_blank" rel="noopener noreferrer">💬 Grupo Telegram</a>
         </div>
       </div>
 
       <div class="info-box">
-        <h4>Tudo organizado para você começar melhor</h4>        
+        <h4>Tudo para  para você começar a operar</h4>        
         <ul>
-          <li>Download rápido do bot.</li>
+          <li>Download rápido do bot Smart Pro.</li>
           <li>Tutorial para configurar Telegram.</li>
           <li>Vídeo para configurar API.</li>
-          <li>Canal direto de suporte.</li>
+          <li>Canal direto para o grupo do telegram.</li>
         </ul>
       </div>
     </section>
@@ -555,5 +657,30 @@ a{color:inherit}
       Bot Smart Pro • Portal oficial
     </div>
   </div>
+  <script>
+    (function () {
+      var slider = document.getElementById("heroVisualSlider");
+      if (!slider) return;
+
+      var slides = slider.querySelectorAll(".visual-slide");
+      var dots = document.querySelectorAll("#heroVisualDots .visual-dot");
+      var index = 0;
+
+      function showSlide(nextIndex) {
+        slides.forEach(function (slide, i) {
+          slide.classList.toggle("active", i === nextIndex);
+        });
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle("active", i === nextIndex);
+        });
+        index = nextIndex;
+      }
+
+      setInterval(function () {
+        var nextIndex = (index + 1) % slides.length;
+        showSlide(nextIndex);
+      }, 5000);
+    })();
+  </script>
 </body>
 </html>
