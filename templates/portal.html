@@ -291,6 +291,15 @@ a{color:inherit}
   will-change:transform, filter;
 }
 
+.slide video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 24px;
+  display: block;
+}
+
 .slide .fx{
   position:absolute;
   inset:0;
@@ -741,10 +750,16 @@ a{color:inherit}
             </div>
 
             <a href="/votacao" class="slide vote-slide" data-time="10000" aria-label="Ir para a página de votação">
-              <img src="/static/votacao-banner.png" alt="Banner da votação">
+              <video autoplay loop muted playsinline>
+                <source src="/static/votacao-banner1.mp4" type="video/mp4">
+              </video>
+
               <span class="fx vote-aura"></span>
               <span class="fx vote-scanline"></span>
-              <div class="vote-overlay">Está rolando uma votação acirrada. Não fique de fora — clique aqui e participe agora.</div>
+
+              <div class="vote-overlay">
+                Está rolando uma votação acirrada. Não fique de fora — clique aqui e participe agora.
+              </div>
             </a>
 
             <div class="slide binance-slide" data-time="10000">
