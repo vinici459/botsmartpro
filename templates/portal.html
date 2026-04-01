@@ -242,7 +242,6 @@ a{color:inherit}
   position:relative;
   width:100%;
   max-width:490px;
-  min-height:560px;
   padding:14px;
   border-radius:32px;
   border:1px solid var(--line-strong);
@@ -250,96 +249,102 @@ a{color:inherit}
   box-shadow:0 24px 80px rgba(0,0,0,.38), 0 0 70px rgba(34,197,94,.08);
 }
 
-.visual-slider{
+.slider{
   position:relative;
   width:100%;
-  min-height:532px;
+  aspect-ratio:1/1;
   border-radius:24px;
   overflow:hidden;
+  background:#040b14;
 }
 
-.visual-slide{
+.slide{
   position:absolute;
   inset:0;
   opacity:0;
   pointer-events:none;
-  transition:opacity .9s ease;
+  transition:opacity .7s ease;
+  border-radius:24px;
+  overflow:hidden;
 }
 
-.visual-slide.active{
+.slide.active{
   opacity:1;
+  z-index:2;
   pointer-events:auto;
 }
 
-.visual-slide.link-slide{
-  cursor:pointer;
-}
-
-.visual-slide img{
+.slide img{
   width:100%;
   height:100%;
   display:block;
-  border-radius:24px;
   object-fit:cover;
+  border-radius:24px;
 }
 
-.visual-overlay{
+.vote-slide{
+  cursor:pointer;
+}
+
+.vote-overlay{
   position:absolute;
   left:18px;
   right:18px;
   bottom:18px;
-  display:flex;
-  justify-content:flex-start;
-}
-
-.visual-cta{
-  max-width:360px;
   padding:16px 18px;
-  border-radius:22px;
+  border-radius:18px;
+  background:rgba(2,6,23,.74);
+  border:1px solid rgba(255,255,255,.10);
+  color:#f8fafc;
   text-decoration:none;
-  border:1px solid rgba(255,255,255,.14);
-  background:linear-gradient(180deg, rgba(2,6,23,.88), rgba(15,23,42,.94));
-  box-shadow:0 16px 36px rgba(0,0,0,.32);
-  backdrop-filter:blur(10px);
+  text-align:center;
+  font-size:15px;
+  font-weight:800;
+  line-height:1.45;
+  backdrop-filter:blur(8px);
+  box-shadow:0 12px 34px rgba(0,0,0,.30);
 }
 
-.visual-cta strong{
-  display:block;
-  font-size:18px;
-  line-height:1.25;
-  color:#ffffff;
+.binance-slide img{
+  animation:slowZoom 10s ease-in-out forwards;
 }
 
-.visual-cta span{
-  display:block;
-  margin-top:8px;
-  font-size:13px;
-  color:#cbd5e1;
-  line-height:1.55;
-}
-
-.visual-dots{
+.binance-slide::before{
+  content:"";
   position:absolute;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  display:flex;
-  gap:8px;
-  z-index:3;
+  inset:0;
+  border-radius:24px;
+  box-shadow:inset 0 0 0 1px rgba(255,230,0,.12), 0 0 30px rgba(163,230,53,.16);
+  animation:pulseGlow 2.8s ease-in-out infinite;
+  pointer-events:none;
 }
 
-.visual-dot{
-  width:10px;
-  height:10px;
-  border-radius:999px;
-  background:rgba(255,255,255,.28);
-  border:1px solid rgba(255,255,255,.15);
-  transition:.2s ease;
+.binance-slide::after{
+  content:"";
+  position:absolute;
+  top:0;
+  left:-130%;
+  width:55%;
+  height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+  transform:skewX(-20deg);
+  animation:shineSweep 3.8s linear infinite;
+  pointer-events:none;
 }
 
-.visual-dot.active{
-  width:28px;
-  background:#22c55e;
+@keyframes slowZoom{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.05)}
+}
+
+@keyframes shineSweep{
+  0%{left:-130%}
+  100%{left:150%}
+}
+
+@keyframes pulseGlow{
+  0%,100%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.12), 0 0 26px rgba(163,230,53,.14)}
+  50%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.18), 0 0 44px rgba(163,230,53,.24)}
 }
 
 .section-title{
@@ -559,24 +564,18 @@ a{color:inherit}
 
       <div class="hero-visual">
         <div class="visual-shell">
-          <div class="visual-slider" id="heroVisualSlider">
-            <div class="visual-slide active">
+          <div id="slider" class="slider">
+            <div class="slide active" data-time="5000">
               <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
             </div>
 
-            <a class="visual-slide link-slide" href="/votacao" aria-label="Ir para a página de votação">
+            <a href="/votacao" class="slide vote-slide" data-time="10000" aria-label="Ir para a página de votação">
               <img src="/static/votacao-banner.png" alt="Banner da votação">
-              <div class="visual-overlay">
-                <div class="visual-cta">
-                  <strong>Está rolando uma votação. Clique aqui para participar.</strong>
-                  <span>Ao clicar, você será redirecionado para a página da votação.</span>
-                </div>
-              </div>
+              <div class="vote-overlay">Está rolando uma votação. Clique aqui para participar.</div>
             </a>
 
-            <div class="visual-dots" id="heroVisualDots">
-              <span class="visual-dot active"></span>
-              <span class="visual-dot"></span>
+            <div class="slide binance-slide" data-time="10000">
+              <img src="/static/binance-banner.png" alt="Banner Binance do Bot Smart Pro">
             </div>
           </div>
         </div>
@@ -661,38 +660,29 @@ a{color:inherit}
       Bot Smart Pro • Portal oficial
     </div>
   </div>
-  <script>
-    (function () {
-      var slider = document.getElementById("heroVisualSlider");
-      if (!slider) return;
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('#slider .slide'));
+  if (!slides.length) return;
 
-      var slides = slider.querySelectorAll(".visual-slide");
-      var dots = document.querySelectorAll("#heroVisualDots .visual-dot");
-      var durations = [5000, 10000];
-      var index = 0;
-      var timer = null;
+  let index = 0;
+  let timer = null;
 
-      function scheduleNext() {
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-          var nextIndex = (index + 1) % slides.length;
-          showSlide(nextIndex);
-        }, durations[index] || 5000);
-      }
+  function activate(i){
+    slides.forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === i);
+    });
 
-      function showSlide(nextIndex) {
-        slides.forEach(function (slide, i) {
-          slide.classList.toggle("active", i === nextIndex);
-        });
-        dots.forEach(function (dot, i) {
-          dot.classList.toggle("active", i === nextIndex);
-        });
-        index = nextIndex;
-        scheduleNext();
-      }
+    clearTimeout(timer);
+    const delay = parseInt(slides[i].dataset.time || '5000', 10);
+    timer = setTimeout(() => {
+      index = (i + 1) % slides.length;
+      activate(index);
+    }, delay);
+  }
 
-      showSlide(0);
-    })();
-  </script>
+  activate(index);
+})();
+</script>
 </body>
 </html>
