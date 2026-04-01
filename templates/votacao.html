@@ -480,22 +480,22 @@
             </div>
 
             <div class="content">
-              <div class="chip blue">Lado Azul</div>
-              <h1>Vote no lado azul</h1>
+              <div class="chip blue">Flavio Bolsonaro</div>
+              <h1>Vote no Flavio Bolsonaro deste lado</h1>
               <p class="sub">
-                Digite o valor que quiser, clique em votar e gere o QR Code Pix imediatamente.
+                Digite o valor que quiser, clique em votar e gere o QR Code.
               </p>
 
               <div class="vote-box">
                 <form action="/votacao/criar-pagamento" method="post">
                   <input type="hidden" name="lado" value="azul" />
-                  <label class="vote-label" for="valorAzul">Valor do voto</label>
+                  <label class="vote-label" for="valorAzul">Valor</label>
                   <div class="input-wrap">
                     <span class="currency">R$</span>
                     <input id="valorAzul" name="valor" type="text" inputmode="decimal" placeholder="1,00" value="{{ valor_azul if valor_azul else '' }}" />
                   </div>
                   <div class="hint">O voto será validado assim que o Pix for confirmado.</div>
-                  <button class="btn blue" type="submit">Votar no Flávio Bolsonaro</button>
+                  <button class="btn blue" type="submit">Confirmar Voto</button>
                 </form>
 
                 <div
@@ -536,22 +536,22 @@
             </div>
 
             <div class="content">
-              <div class="chip red">Lado Vermelho</div>
-              <h1>Vote no lado vermelho</h1>
+              <div class="chip red">Lula</div>
+              <h1>Vote no Lula deste lado</h1>
               <p class="sub">
-                Digite o valor que quiser, clique em votar e gere o QR Code Pix imediatamente.
+                Digite o valor que quiser, clique em votar e gere o QR Code Pix.
               </p>
 
               <div class="vote-box">
                 <form action="/votacao/criar-pagamento" method="post">
                   <input type="hidden" name="lado" value="vermelho" />
-                  <label class="vote-label" for="valorVermelho">Valor do voto</label>
+                  <label class="vote-label" for="valorVermelho">Valor</label>
                   <div class="input-wrap">
                     <span class="currency">R$</span>
                     <input id="valorVermelho" name="valor" type="text" inputmode="decimal" placeholder="1,00" value="{{ valor_vermelho if valor_vermelho else '' }}" />
                   </div>
                   <div class="hint">O voto será validado assim que o Pix for confirmado.</div>
-                  <button class="btn red" type="submit">Votar no Lula</button>
+                  <button class="btn red" type="submit">Confirmar Voto</button>
                 </form>
 
                 <div
