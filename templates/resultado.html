@@ -160,7 +160,7 @@
     }
 
     .name{
-      margin:14px 0 6px;
+      margin:0 0 6px;
       font-size:34px;
       font-weight:900;
       line-height:1.05;
@@ -296,9 +296,9 @@
 
     .summary-box .v{
       margin-top:8px;
-      font-size:28px;
+      font-size:24px;
       font-weight:900;
-      line-height:1;
+      line-height:1.15;
     }
 
     .links{
@@ -378,7 +378,7 @@
     <section class="cards">
       <article class="card blue">
         <div class="card-head">
-          <div class="chip blue">Lado Azul</div>
+          
           <div class="name">Flávio Bolsonaro</div>
         </div>
 
@@ -417,8 +417,7 @@
       </article>
 
       <article class="card red">
-        <div class="card-head">
-          <div class="chip red">Lado Vermelho</div>
+        <div class="card-head">          
           <div class="name">Lula</div>
         </div>
 
@@ -473,15 +472,30 @@
 
         <div class="summary-box">
           <div class="k">Líder por votos</div>
-          <div class="v">{% if pct_votos_azul > pct_votos_vermelho %}Azul{% elif pct_votos_vermelho > pct_votos_azul %}Vermelho{% else %}Empate{% endif %}</div>
+          <div class="v">
+            {% if pct_votos_azul > pct_votos_vermelho %}
+              Flávio Bolsonaro
+            {% elif pct_votos_vermelho > pct_votos_azul %}
+              Lula
+            {% else %}
+              Empate
+            {% endif %}
+          </div>
         </div>
 
         <div class="summary-box">
           <div class="k">Líder por peso</div>
-          <div class="v">{% if pct_peso_azul > pct_peso_vermelho %}Azul{% elif pct_peso_vermelho > pct_peso_azul %}Vermelho{% else %}Empate{% endif %}</div>
+          <div class="v">
+            {% if pct_peso_azul > pct_peso_vermelho %}
+              Flávio Bolsonaro
+            {% elif pct_peso_vermelho > pct_peso_azul %}
+              Lula
+            {% else %}
+              Empate
+            {% endif %}
+          </div>
         </div>
       </div>
-
       <div class="links">
         <a class="btn blue" href="/votacao">Voltar para a votação</a>
         <a class="btn red" href="/portal">Ir para o portal</a>
