@@ -239,7 +239,6 @@ a{color:inherit}
 }
 
 .visual-shell{
-  position:relative;
   width:100%;
   max-width:490px;
   padding:14px;
@@ -249,30 +248,36 @@ a{color:inherit}
   box-shadow:0 24px 80px rgba(0,0,0,.38), 0 0 70px rgba(34,197,94,.08);
 }
 
+.visual-shell{
+  position:relative;
+  isolation:isolate;
+}
+
 .slider{
   position:relative;
   width:100%;
   aspect-ratio:1/1;
   border-radius:24px;
   overflow:hidden;
-  background:#040b14;
+  background:#04111b;
 }
 
 .slide{
   position:absolute;
   inset:0;
   opacity:0;
+  visibility:hidden;
   pointer-events:none;
-  transition:opacity .75s ease;
+  transition:opacity .7s ease, visibility .7s ease;
   border-radius:24px;
   overflow:hidden;
-  isolation:isolate;
 }
 
 .slide.active{
   opacity:1;
-  z-index:2;
+  visibility:visible;
   pointer-events:auto;
+  z-index:2;
 }
 
 .slide img{
@@ -280,6 +285,7 @@ a{color:inherit}
   height:100%;
   display:block;
   object-fit:cover;
+  object-position:center center;
   border-radius:24px;
   transform-origin:center;
   will-change:transform, filter;
@@ -303,15 +309,15 @@ a{color:inherit}
   width:10px;
   height:10px;
   border-radius:999px;
-  background:rgba(255,255,255,.20);
-  box-shadow:0 0 0 1px rgba(255,255,255,.06);
+  background:rgba(255,255,255,.18);
+  box-shadow:0 0 0 1px rgba(255,255,255,.07);
   transition:transform .25s ease, background .25s ease, box-shadow .25s ease;
 }
 
 .slider-dots .dot.active{
   transform:scale(1.18);
   background:#86efac;
-  box-shadow:0 0 16px rgba(134,239,172,.42);
+  box-shadow:0 0 16px rgba(134,239,172,.38);
 }
 
 .bot-slide img{
@@ -323,44 +329,44 @@ a{color:inherit}
   position:absolute;
   inset:0;
   border-radius:24px;
-  background:radial-gradient(circle at center, rgba(34,197,94,.10), transparent 46%);
+  background:radial-gradient(circle at center, rgba(34,197,94,.12), transparent 48%);
   mix-blend-mode:screen;
-  animation:botBackdropPulse 2.4s ease-in-out infinite;
+  animation:botBackdropPulse 2.6s ease-in-out infinite;
 }
 
 .bot-ring{
   border-radius:24px;
   background:
-    radial-gradient(circle at center, transparent 0 41%, rgba(134,239,172,.18) 43%, transparent 46%),
-    radial-gradient(circle at center, transparent 0 55%, rgba(110,231,183,.12) 57%, transparent 60%);
+    radial-gradient(circle at center, transparent 0 41%, rgba(134,239,172,.16) 43%, transparent 46%),
+    radial-gradient(circle at center, transparent 0 55%, rgba(110,231,183,.10) 57%, transparent 60%);
   mix-blend-mode:screen;
-  animation:botRingSpin 5.5s linear infinite;
+  animation:botRingSpin 6s linear infinite;
 }
 
 .bot-scan{
-  background:linear-gradient(180deg, transparent 0%, rgba(134,239,172,.04) 42%, rgba(134,239,172,.18) 50%, rgba(134,239,172,.04) 58%, transparent 100%);
+  background:linear-gradient(180deg, transparent 0%, rgba(134,239,172,.03) 42%, rgba(134,239,172,.14) 50%, rgba(134,239,172,.03) 58%, transparent 100%);
   transform:translateY(-100%);
-  animation:botScanSweep 2.8s ease-in-out infinite;
+  animation:botScanSweep 2.9s ease-in-out infinite;
 }
 
 .bot-spark{
   background:
-    radial-gradient(circle at 14% 30%, rgba(255,255,255,.95) 0 0.5%, transparent 1.4%),
-    radial-gradient(circle at 82% 18%, rgba(255,255,255,.85) 0 0.5%, transparent 1.2%),
-    radial-gradient(circle at 76% 76%, rgba(187,247,208,.90) 0 0.6%, transparent 1.5%),
-    radial-gradient(circle at 28% 82%, rgba(187,247,208,.70) 0 0.5%, tra
-    nsparent 1.2%);
-  opacity:.55;
-  animation:botSparkle 2.6s ease-in-out infinite;
+    radial-gradient(circle at 16% 30%, rgba(255,255,255,.95) 0 .45%, transparent 1.4%),
+    radial-gradient(circle at 82% 18%, rgba(255,255,255,.82) 0 .45%, transparent 1.2%),
+    radial-gradient(circle at 76% 76%, rgba(187,247,208,.85) 0 .55%, transparent 1.5%),
+    radial-gradient(circle at 28% 82%, rgba(187,247,208,.72) 0 .5%, transparent 1.2%);
+  opacity:.48;
+  animation:botSparkle 2.8s ease-in-out infinite;
 }
 
 .vote-slide{
+  text-decoration:none;
   cursor:pointer;
 }
 
 .vote-slide img{
   animation:voteDrift 10s ease-in-out forwards;
-  filter:saturate(1.06) contrast(1.04);
+  filter:saturate(1.04) contrast(1.03);
 }
 
 .vote-slide::before{
@@ -377,7 +383,7 @@ a{color:inherit}
   background:
     radial-gradient(circle at 22% 48%, rgba(59,130,246,.18), transparent 24%),
     radial-gradient(circle at 78% 48%, rgba(248,113,113,.18), transparent 24%),
-    radial-gradient(circle at center, rgba(255,196,0,.10), transparent 34%);
+    radial-gradient(circle at center, rgba(255,196,0,.09), transparent 34%);
   animation:voteAuraShift 4.8s ease-in-out infinite;
 }
 
@@ -387,7 +393,7 @@ a{color:inherit}
   background:linear-gradient(180deg, transparent, rgba(255,255,255,.12), transparent);
   filter:blur(10px);
   transform:translateY(35px);
-  animation:voteScanline 2.9s ease-in-out infinite;
+  animation:voteScanline 3s ease-in-out infinite;
 }
 
 .vote-overlay{
@@ -395,18 +401,17 @@ a{color:inherit}
   left:18px;
   right:18px;
   bottom:18px;
-  padding:16px 18px;
+  padding:15px 16px;
   border-radius:18px;
   background:rgba(2,6,23,.72);
   border:1px solid rgba(255,255,255,.12);
   color:#f8fafc;
-  text-decoration:none;
   text-align:center;
-  font-size:15px;
+  font-size:14px;
   font-weight:800;
   line-height:1.45;
   backdrop-filter:blur(8px);
-  box-shadow:0 12px 34px rgba(0,0,0,.30);
+  box-shadow:0 12px 34px rgba(0,0,0,.28);
   animation:voteOverlayPulse 1.9s ease-in-out infinite;
 }
 
@@ -419,7 +424,7 @@ a{color:inherit}
   position:absolute;
   inset:0;
   border-radius:24px;
-  box-shadow:inset 0 0 0 1px rgba(255,230,0,.12), 0 0 30px rgba(163,230,53,.16);
+  box-shadow:inset 0 0 0 1px rgba(255,230,0,.11), 0 0 28px rgba(163,230,53,.15);
   animation:pulseGlow 2.8s ease-in-out infinite;
   pointer-events:none;
 }
@@ -431,21 +436,21 @@ a{color:inherit}
   left:-130%;
   width:55%;
   height:100%;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
   transform:skewX(-20deg);
-  animation:shineSweep 3.8s linear infinite;
+  animation:shineSweep 3.9s linear infinite;
   pointer-events:none;
 }
 
 @keyframes botFloatZoom{
   0%{transform:scale(1) translateY(0); filter:brightness(.98)}
-  45%{transform:scale(1.035) translateY(-6px); filter:brightness(1.05)}
-  100%{transform:scale(1.055) translateY(-2px); filter:brightness(1.02)}
+  45%{transform:scale(1.03) translateY(-5px); filter:brightness(1.05)}
+  100%{transform:scale(1.05) translateY(-2px); filter:brightness(1.02)}
 }
 
 @keyframes botBackdropPulse{
-  0%,100%{opacity:.52}
-  50%{opacity:.95}
+  0%,100%{opacity:.48}
+  50%{opacity:.9}
 }
 
 @keyframes botRingSpin{
@@ -455,40 +460,40 @@ a{color:inherit}
 
 @keyframes botScanSweep{
   0%{transform:translateY(-105%); opacity:0}
-  20%{opacity:.35}
-  50%{opacity:.55}
+  20%{opacity:.28}
+  50%{opacity:.5}
   100%{transform:translateY(105%); opacity:0}
 }
 
 @keyframes botSparkle{
   0%,100%{opacity:.25; transform:scale(.98)}
-  50%{opacity:.82; transform:scale(1.03)}
+  50%{opacity:.75; transform:scale(1.03)}
 }
 
 @keyframes voteDrift{
-  0%{transform:scale(1) translateX(0); filter:saturate(1) contrast(1)}
-  50%{transform:scale(1.04) translateX(6px); filter:saturate(1.08) contrast(1.04)}
-  100%{transform:scale(1.06) translateX(-4px); filter:saturate(1.04) contrast(1.03)}
+  0%{transform:scale(1) translateX(0)}
+  50%{transform:scale(1.035) translateX(6px)}
+  100%{transform:scale(1.05) translateX(-4px)}
 }
 
 @keyframes votePulse{
-  0%,100%{opacity:.52}
-  50%{opacity:.92}
+  0%,100%{opacity:.5}
+  50%{opacity:.88}
 }
 
 @keyframes voteAuraShift{
-  0%,100%{transform:scale(1); opacity:.45}
-  50%{transform:scale(1.05); opacity:.88}
+  0%,100%{transform:scale(1); opacity:.42}
+  50%{transform:scale(1.05); opacity:.82}
 }
 
 @keyframes voteScanline{
-  0%,100%{transform:translateY(34px); opacity:.10}
-  50%{transform:translateY(-8px); opacity:.42}
+  0%,100%{transform:translateY(34px); opacity:.1}
+  50%{transform:translateY(-8px); opacity:.38}
 }
 
 @keyframes voteOverlayPulse{
-  0%,100%{box-shadow:0 12px 34px rgba(0,0,0,.30), 0 0 0 rgba(255,255,255,0)}
-  50%{box-shadow:0 14px 38px rgba(0,0,0,.34), 0 0 24px rgba(255,255,255,.08)}
+  0%,100%{box-shadow:0 12px 34px rgba(0,0,0,.28), 0 0 0 rgba(255,255,255,0)}
+  50%{box-shadow:0 14px 38px rgba(0,0,0,.32), 0 0 22px rgba(255,255,255,.08)}
 }
 
 @keyframes slowZoom{
@@ -502,8 +507,8 @@ a{color:inherit}
 }
 
 @keyframes pulseGlow{
-  0%,100%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.12), 0 0 26px rgba(163,230,53,.14)}
-  50%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.18), 0 0 44px rgba(163,230,53,.24)}
+  0%,100%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.11), 0 0 24px rgba(163,230,53,.13)}
+  50%{box-shadow:inset 0 0 0 1px rgba(255,230,0,.18), 0 0 42px rgba(163,230,53,.23)}
 }
 
 .section-title{
@@ -660,6 +665,8 @@ a{color:inherit}
 @media (max-width: 1080px){
   .hero,
   .support{grid-template-columns:1fr}
+  .hero-visual{margin-top:8px}
+  .visual-shell{max-width:560px; margin:0 auto}
 }
 
 @media (max-width: 780px){
@@ -723,7 +730,31 @@ a{color:inherit}
 
       <div class="hero-visual">
         <div class="visual-shell">
-          <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
+          <div id="slider" class="slider">
+            <div class="slide bot-slide active" data-time="5000">
+              <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
+              <span class="fx bot-ring"></span>
+              <span class="fx bot-scan"></span>
+              <span class="fx bot-spark"></span>
+            </div>
+
+            <a href="/votacao" class="slide vote-slide" data-time="10000" aria-label="Ir para a página de votação">
+              <img src="/static/votacao-banner.png" alt="Banner da votação">
+              <span class="fx vote-aura"></span>
+              <span class="fx vote-scanline"></span>
+              <div class="vote-overlay">Está rolando uma votação. Clique aqui para participar.</div>
+            </a>
+
+            <div class="slide binance-slide" data-time="10000">
+              <img src="/static/binance-banner.png" alt="Banner Binance do Bot Smart Pro">
+            </div>
+          </div>
+
+          <div class="slider-dots" aria-hidden="true">
+            <span class="dot active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
         </div>
       </div>
     </section>
@@ -806,7 +837,6 @@ a{color:inherit}
       Bot Smart Pro • Portal oficial
     </div>
   </div>
-
 <script>
 (function(){
   const slides = Array.from(document.querySelectorAll('#slider .slide'));
@@ -817,8 +847,13 @@ a{color:inherit}
   let timer = null;
 
   function activate(i){
-    slides.forEach((slide, idx) => slide.classList.toggle('active', idx === i));
-    dots.forEach((dot, idx) => dot.classList.toggle('active', idx === i));
+    slides.forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === i);
+    });
+
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === i);
+    });
 
     clearTimeout(timer);
     const delay = parseInt(slides[i].dataset.time || '5000', 10);
@@ -831,6 +866,5 @@ a{color:inherit}
   activate(index);
 })();
 </script>
-
 </body>
 </html>
