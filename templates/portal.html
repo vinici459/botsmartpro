@@ -271,6 +271,10 @@ a{color:inherit}
   pointer-events:auto;
 }
 
+.visual-slide.link-slide{
+  cursor:pointer;
+}
+
 .visual-slide img{
   width:100%;
   height:100%;
@@ -560,15 +564,15 @@ a{color:inherit}
               <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
             </div>
 
-            <div class="visual-slide">
+            <a class="visual-slide link-slide" href="/votacao" aria-label="Ir para a página de votação">
               <img src="/static/votacao-banner.png" alt="Banner da votação">
               <div class="visual-overlay">
-                <a class="visual-cta" href="/votacao">
+                <div class="visual-cta">
                   <strong>Está rolando uma votação. Clique aqui para participar.</strong>
                   <span>Ao clicar, você será redirecionado para a página da votação.</span>
-                </a>
+                </div>
               </div>
-            </div>
+            </a>
 
             <div class="visual-dots" id="heroVisualDots">
               <span class="visual-dot active"></span>
@@ -664,7 +668,17 @@ a{color:inherit}
 
       var slides = slider.querySelectorAll(".visual-slide");
       var dots = document.querySelectorAll("#heroVisualDots .visual-dot");
+      var durations = [5000, 10000];
       var index = 0;
+      var timer = null;
+
+      function scheduleNext() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          var nextIndex = (index + 1) % slides.length;
+          showSlide(nextIndex);
+        }, durations[index] || 5000);
+      }
 
       function showSlide(nextIndex) {
         slides.forEach(function (slide, i) {
@@ -674,12 +688,10 @@ a{color:inherit}
           dot.classList.toggle("active", i === nextIndex);
         });
         index = nextIndex;
+        scheduleNext();
       }
 
-      setInterval(function () {
-        var nextIndex = (index + 1) % slides.length;
-        showSlide(nextIndex);
-      }, 5000);
+      showSlide(0);
     })();
   </script>
 </body>
