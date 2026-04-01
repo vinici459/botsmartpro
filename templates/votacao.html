@@ -431,7 +431,14 @@
 
     @media (max-width: 1180px) {
       .grid { grid-template-columns: 1fr; }
-      .center { order: 2; padding: 22px 22px; }
+
+      .side.blue { order: 1; }
+      .center {
+        order: 2;
+        padding: 22px 22px;
+      }
+      .side.red { order: 3; }
+
       .divider { display: none; }
       .vs-shell { width: 160px; }
       .center-text { max-width: 100%; }
