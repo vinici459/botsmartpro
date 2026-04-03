@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 import uuid
 import requests
 
-import bcrypt, jwt, datetime, os
+import bcrypt, jwt, datetime, os, secrets
 from sqlalchemy import (
     create_engine,
     Column,
@@ -195,6 +195,45 @@ def ensure_voting_columns():
     except Exception as e:
         print("[DB] Erro ao garantir colunas da votação:", e)
 
+
+
+def ensure_coupon_columns():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS coupon_code_used VARCHAR;
+            """))
+            conn.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS coupon_used_at TIMESTAMP;
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS coupon_redemptions (
+                    id SERIAL PRIMARY KEY,
+                    cpf VARCHAR NOT NULL,
+                    coupon_code VARCHAR NOT NULL,
+                    source_payment_id VARCHAR,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    used BOOLEAN DEFAULT FALSE,
+                    used_at TIMESTAMP NULL,
+                    used_by_user_id INTEGER NULL,
+                    used_by_username VARCHAR NULL
+                );
+            """))
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_coupon_redemptions_cpf ON coupon_redemptions (cpf);"))
+            except Exception:
+                pass
+            try:
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_coupon_redemptions_code ON coupon_redemptions (coupon_code);"))
+            except Exception:
+                pass
+            conn.commit()
+            print("[DB] Estruturas de cupons verificadas/criadas.")
+    except Exception as e:
+        print("[DB] Erro ao garantir estruturas de cupons:", e)
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -218,6 +257,8 @@ class User(Base):
     last_payment_id = Column(String, nullable=True)
     last_payment_status = Column(String, nullable=True)
     last_payment_at = Column(DateTime, nullable=True)
+    coupon_code_used = Column(String, nullable=True)
+    coupon_used_at = Column(DateTime, nullable=True)
 
 
 class Trade(Base):
@@ -252,6 +293,20 @@ class VotingPayment(Base):
     view_token = Column(String, unique=True, index=True, nullable=True)
     view_used = Column(Boolean, default=False)
     view_used_at = Column(DateTime, nullable=True)
+
+
+class CouponRedemption(Base):
+    __tablename__ = "coupon_redemptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cpf = Column(String, unique=True, index=True, nullable=False)
+    coupon_code = Column(String, unique=True, index=True, nullable=False)
+    source_payment_id = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    used = Column(Boolean, default=False)
+    used_at = Column(DateTime, nullable=True)
+    used_by_user_id = Column(Integer, nullable=True)
+    used_by_username = Column(String, nullable=True)
 
 def create_token(user: str, session_id: str):
     payload = {
@@ -391,6 +446,47 @@ def _pct(part: float, total: float) -> float:
     if total <= 0:
         return 0.0
     return round((part / total) * 100.0, 2)  
+
+
+def _mask_cpf(v: str) -> str:
+    v = _only_digits(v)
+    if len(v) == 11:
+        return f"{v[:3]}.{v[3:6]}.{v[6:9]}-{v[9:]}"
+    return v
+
+def _generate_coupon_code() -> str:
+    token = secrets.token_hex(4).upper()
+    return f"BSP-{token[:4]}-{token[4:]}"
+
+def _build_account_data(user: User) -> dict:
+    now = datetime.datetime.utcnow()
+    valid_until = user.trial_until.strftime("%d/%m/%Y %H:%M") if user.trial_until else "Não definido"
+
+    if user.trial_until and now > user.trial_until:
+        status_text = "Expirado"
+        status_key = "expired"
+    elif user.trial_until:
+        dias = get_trial_days_left(user.trial_until)
+        if isinstance(dias, int) and dias <= 7:
+            status_text = f"Expirando ({dias} dias restantes)"
+            status_key = "expiring"
+        else:
+            status_text = f"Ativo ({dias} dias restantes)"
+            status_key = "active"
+    else:
+        status_text = "Sem validade definida"
+        status_key = "unknown"
+
+    return {
+        "full_name": user.full_name or "Não informado",
+        "username": user.user,
+        "cpf_masked": _mask_cpf(user.cpf or ""),
+        "cpf_raw": user.cpf or "",
+        "phone": user.phone or "Não informado",
+        "valid_until": valid_until,
+        "status_text": status_text,
+        "status_key": status_key,
+    }
   
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
@@ -747,6 +843,11 @@ def resultado_page(
             "pct_votos_vermelho": _pct(votos_vermelho, total_votos),
             "pct_peso_azul": _pct(peso_azul, total_peso),
             "pct_peso_vermelho": _pct(peso_vermelho, total_peso),
+            "view_token": token,
+            "coupon_error": None,
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": "",
         }
     )
 
@@ -1272,6 +1373,208 @@ def renovar_status_pagamento(
         "status": status,
     }
 
+
+
+@app.post("/resultado/resgatar-cupom", response_class=HTMLResponse)
+def resgatar_cupom_resultado(
+    request: Request,
+    view_token: str = Form(...),
+    cpf: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    token = (view_token or "").strip()
+    cpf_clean = _only_digits(cpf)
+
+    if not token:
+        return HTMLResponse("<h3>Link inválido.</h3>", status_code=403)
+
+    payment = db.query(VotingPayment).filter(VotingPayment.view_token == token).first()
+    if not payment or payment.status != "approved":
+        return HTMLResponse("<h3>Acesso não autorizado.</h3>", status_code=403)
+
+    approved = db.query(VotingPayment).filter(VotingPayment.status == "approved").all()
+    votos_azul = sum(1 for p in approved if p.lado == "azul")
+    votos_vermelho = sum(1 for p in approved if p.lado == "vermelho")
+    peso_azul = round(sum(float(p.peso or 0) for p in approved if p.lado == "azul"), 2)
+    peso_vermelho = round(sum(float(p.peso or 0) for p in approved if p.lado == "vermelho"), 2)
+    total_votos = votos_azul + votos_vermelho
+    total_peso = round(peso_azul + peso_vermelho, 2)
+
+    coupon_error = None
+    coupon_success = None
+    coupon_code = None
+
+    if not validar_cpf(cpf_clean):
+        coupon_error = "Digite um CPF válido para resgatar o cupom."
+    else:
+        existing = db.query(CouponRedemption).filter(CouponRedemption.cpf == cpf_clean).first()
+        if existing:
+            coupon_error = "Este CPF já resgatou o cupom. Cada CPF pode resgatar somente uma vez."
+        else:
+            code = _generate_coupon_code()
+            while db.query(CouponRedemption).filter(CouponRedemption.coupon_code == code).first():
+                code = _generate_coupon_code()
+            coupon = CouponRedemption(cpf=cpf_clean, coupon_code=code, source_payment_id=payment.payment_id)
+            db.add(coupon)
+            db.commit()
+            coupon_success = "Cupom gerado com sucesso. Copie e guarde agora, porque ele não será mostrado novamente."
+            coupon_code = code
+
+    response = templates.TemplateResponse(
+        request,
+        "resultado.html",
+        {
+            "request": request,
+            "votos_azul": votos_azul,
+            "votos_vermelho": votos_vermelho,
+            "peso_azul": peso_azul,
+            "peso_vermelho": peso_vermelho,
+            "total_votos": total_votos,
+            "total_peso": total_peso,
+            "pct_votos_azul": _pct(votos_azul, total_votos),
+            "pct_votos_vermelho": _pct(votos_vermelho, total_votos),
+            "pct_peso_azul": _pct(peso_azul, total_peso),
+            "pct_peso_vermelho": _pct(peso_vermelho, total_peso),
+            "view_token": token,
+            "coupon_error": coupon_error,
+            "coupon_success": coupon_success,
+            "coupon_code": coupon_code,
+            "coupon_cpf": _mask_cpf(cpf_clean),
+        }
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.post("/renovar/aplicar-cupom", response_class=HTMLResponse)
+def renovar_aplicar_cupom(
+    request: Request,
+    cpf: str = Form(...),
+    coupon_code: str = Form(...),
+    db: Session = Depends(get_db_session),
+):
+    cpf_clean = _only_digits(cpf)
+    code = (coupon_code or "").strip().upper()
+
+    user = db.query(User).filter(User.cpf == cpf_clean).first()
+    if not user:
+        return templates.TemplateResponse(request, "renew_payment.html", {
+            "request": request,
+            "account": None,
+            "error": None,
+            "success": None,
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+            "coupon_error": "Você precisa criar uma conta primeiro antes de ativar o cupom.",
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": cpf or "",
+        })
+
+    account = _build_account_data(user)
+
+    if not code:
+        return templates.TemplateResponse(request, "renew_payment.html", {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": None,
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+            "coupon_error": "Digite o código do cupom para ativar.",
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": cpf or "",
+        })
+
+    coupon = db.query(CouponRedemption).filter(CouponRedemption.coupon_code == code).first()
+    if not coupon:
+        return templates.TemplateResponse(request, "renew_payment.html", {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": None,
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+            "coupon_error": "Cupom inválido.",
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": cpf or "",
+        })
+
+    if coupon.cpf != cpf_clean:
+        return templates.TemplateResponse(request, "renew_payment.html", {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": None,
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+            "coupon_error": "Este cupom está vinculado a outro CPF e não pode ser usado nesta conta.",
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": cpf or "",
+        })
+
+    if coupon.used:
+        return templates.TemplateResponse(request, "renew_payment.html", {
+            "request": request,
+            "account": account,
+            "error": None,
+            "success": None,
+            "cpf": cpf or "",
+            "pix_qr": None,
+            "pix_code": None,
+            "payment_id": None,
+            "coupon_error": "Este cupom já foi utilizado e não pode ser usado novamente.",
+            "coupon_success": None,
+            "coupon_code": None,
+            "coupon_cpf": cpf or "",
+        })
+
+    now = datetime.datetime.utcnow()
+    if user.trial_until and user.trial_until > now:
+        user.trial_until = user.trial_until + datetime.timedelta(days=20)
+    else:
+        user.trial_until = now + datetime.timedelta(days=20)
+
+    user.coupon_code_used = coupon.coupon_code
+    user.coupon_used_at = now
+    coupon.used = True
+    coupon.used_at = now
+    coupon.used_by_user_id = user.id
+    coupon.used_by_username = user.user
+
+    db.add(user)
+    db.add(coupon)
+    db.commit()
+    db.refresh(user)
+
+    return templates.TemplateResponse(request, "renew_payment.html", {
+        "request": request,
+        "account": _build_account_data(user),
+        "error": None,
+        "success": None,
+        "cpf": cpf or "",
+        "pix_qr": None,
+        "pix_code": None,
+        "payment_id": None,
+        "coupon_error": None,
+        "coupon_success": "Cupom ativado com sucesso. Sua conta recebeu +20 dias de acesso.",
+        "coupon_code": None,
+        "coupon_cpf": cpf or "",
+    })
+
 FORCE_ADMIN_PASSWORD_RESET = (os.getenv("FORCE_ADMIN_PASSWORD_RESET") or "false").strip().lower() == "true"
 
 @app.on_event("startup")
@@ -1282,6 +1585,7 @@ def startup():
     ensure_cadastro_columns()
     ensure_payment_columns()
     ensure_voting_columns()
+    ensure_coupon_columns()
 
     db: Session = SessionLocal()
     try:
@@ -1427,7 +1731,7 @@ def signup_form(key: str | None = None):
 <body>
   <div class="card">
     <h2>Cadastro — Bot Smart Pro</h2>
-    <p class="muted">Cadastro com período de teste automático de 15 dias.</p>
+    <p class="muted">Cadastro com período de teste automático de 7 dias.</p>
 
     <form action="/cadastro?key=__KEY__" method="post">
   
@@ -1555,7 +1859,7 @@ def signup_submit(
         return render_form("Usuário já existe. Escolha outro.")
 
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
+    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=7)
 
     # 👇 AGORA SALVA O TELEFONE NO BANCO
     new_user = User(
@@ -1616,7 +1920,7 @@ def api_register(data: dict = Body(...), db: Session = Depends(get_db_session)):
         return {"ok": False, "reason": "user_exists"}
 
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=15)
+    trial_until = datetime.datetime.utcnow() + datetime.timedelta(days=7)
 
     new_user = User(
         user=username,

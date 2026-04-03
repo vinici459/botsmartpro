@@ -364,6 +364,26 @@
       background: linear-gradient(135deg, rgba(37,99,235,0.28), rgba(29,78,216,0.50));
     }
 
+    .copy-inline-btn {
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #22c55e;
+      color: #052e16;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .coupon-box {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+    }
+
     .footer-note {
       margin-top: 16px;
       color: var(--muted);
@@ -465,7 +485,8 @@
                 <h3>Escaneie o QR Code</h3>
                 <img src="data:image/png;base64,{{ pix_qr }}" width="220">
                 <p style="margin-top:10px;">Ou copie o código abaixo:</p>
-                <textarea style="width:100%; height:80px;">{{ pix_code }}</textarea>
+                <textarea id="pix-code-textarea" style="width:100%; height:80px;">{{ pix_code }}</textarea>
+                <button class="copy-inline-btn" type="button" onclick="copyTextById('pix-code-textarea')">Copiar código Pix completo</button>
             </div>
 
             {% if payment_id %}
@@ -501,6 +522,34 @@
 
           <button class="search-btn" type="submit">Buscar minha conta</button>
         </form>
+
+        <div class="coupon-box">
+          <h4 style="margin:0 0 6px;">Ativar cupom promocional</h4>
+          <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.5;">Se você resgatou seu cupom na página de resultados, informe abaixo o CPF e o código recebido para ganhar +20 dias.</p>
+
+          {% if coupon_error %}
+            <div class="alert error">{{ coupon_error }}</div>
+          {% endif %}
+
+          {% if coupon_success %}
+            <div class="alert success">{{ coupon_success }}</div>
+          {% endif %}
+
+          <form action="/renovar/aplicar-cupom" method="post">
+            <div class="field">
+              <label for="coupon_cpf">CPF do cupom</label>
+              <input id="coupon_cpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="{{ coupon_cpf or cpf or '' }}" required>
+            </div>
+
+            <div class="field">
+              <label for="coupon_code">Código do cupom</label>
+              <input id="coupon_code" name="coupon_code" type="text" maxlength="40" placeholder="BSP-XXXX-XXXX" required>
+              <div class="hint">O cupom é pessoal, vinculado ao CPF e só pode ser usado uma vez.</div>
+            </div>
+
+            <button class="search-btn" type="submit">Ativar cupom</button>
+          </form>
+        </div>
 
         {% if account %}
           <div class="account-card">
@@ -570,20 +619,32 @@
   </div>
 
   <script>
-    const cpfInput = document.getElementById("cpf");
-    if (cpfInput) {
-        cpfInput.addEventListener("input", (e) => {
+    function copyTextById(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.select();
+      el.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+    }
+
+    function attachCpfMask(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener("input", (e) => {
         let v = e.target.value.replace(/\D/g, "").slice(0, 11);
         if (v.length > 9) {
-            v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
+          v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
         } else if (v.length > 6) {
-            v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
+          v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
         } else if (v.length > 3) {
-            v = v.replace(/(\d{3})(\d{0,3})/, "$1.$2");
+          v = v.replace(/(\d{3})(\d{0,3})/, "$1.$2");
         }
         e.target.value = v;
-        });
+      });
     }
+
+    attachCpfMask("cpf");
+    attachCpfMask("coupon_cpf");
 
     (function () {
         const paymentId = "{{ payment_id or '' }}";

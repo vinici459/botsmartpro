@@ -344,6 +344,86 @@
       font-size:13px;
     }
 
+    .coupon-panel{
+      margin-top:22px;
+      border:1px solid var(--line);
+      border-radius:28px;
+      background:linear-gradient(180deg, rgba(34,197,94,.08), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+
+    .coupon-panel h3{
+      margin:0 0 8px;
+      font-size:24px;
+    }
+
+    .coupon-panel p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .coupon-form{
+      display:grid;
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .coupon-form input{
+      width:100%;
+      border:1px solid var(--line);
+      outline:none;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      border-radius:14px;
+      padding:14px;
+      font-size:15px;
+    }
+
+    .coupon-code-box{
+      margin-top:16px;
+      padding:16px;
+      border-radius:18px;
+      border:1px solid rgba(34,197,94,.22);
+      background:rgba(34,197,94,.08);
+    }
+
+    .coupon-code{
+      margin-top:8px;
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:.08em;
+      word-break:break-all;
+    }
+
+    .field-help{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .alert{
+      margin-top:16px;
+      padding:12px 14px;
+      border-radius:14px;
+      font-size:14px;
+      border:1px solid transparent;
+    }
+
+    .alert.error{
+      background:rgba(239,68,68,.12);
+      color:#fecaca;
+      border-color:rgba(239,68,68,.24);
+    }
+
+    .alert.success{
+      background:rgba(34,197,94,.12);
+      color:#bbf7d0;
+      border-color:rgba(34,197,94,.24);
+    }
+
     @media (max-width: 960px){
       .cards{grid-template-columns:1fr}
       .summary-grid{grid-template-columns:1fr 1fr}
@@ -502,13 +582,69 @@
       </div>
     </section>
 
+    <section class="coupon-panel">
+      <h3>Resgatar cupom promocional</h3>
+      <p>Digite seu CPF e gere um cupom pessoal para usar na renovação. Esse cupom dá +20 dias, fica vinculado ao CPF informado e só pode ser usado uma única vez.</p>
+
+      {% if coupon_error %}
+        <div class="alert error">{{ coupon_error }}</div>
+      {% endif %}
+
+      {% if coupon_success %}
+        <div class="alert success">{{ coupon_success }}</div>
+      {% endif %}
+
+      <form class="coupon-form" action="/resultado/resgatar-cupom" method="post">
+        <input type="hidden" name="view_token" value="{{ view_token or '' }}">
+        <div>
+          <input id="couponCpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="Digite seu CPF para resgatar" value="{{ coupon_cpf or '' }}" required>
+          <div class="field-help">Cada CPF pode resgatar apenas um cupom.</div>
+        </div>
+        <button class="btn blue" type="submit">Resgatar cupom</button>
+      </form>
+
+      {% if coupon_code %}
+        <div class="coupon-code-box">
+          <div>Seu código foi gerado. Copie e guarde agora:</div>
+          <div class="coupon-code" id="couponCodeText">{{ coupon_code }}</div>
+          <div class="links" style="margin-top:14px;">
+            <button class="btn blue" type="button" onclick="copyCouponCode()">Copiar código</button>
+            <a class="btn red" href="/renovar?cpf={{ coupon_cpf or '' }}">Ir para renovação</a>
+          </div>
+          <div class="field-help">Importante: este código não será mostrado novamente depois que você sair desta tela.</div>
+        </div>
+      {% endif %}
+    </section>
+
     <div class="footer">
       Atualização automática habilitada
     </div>
   </div>
 
   <script>
-    
+  function copyCouponCode() {
+    const el = document.getElementById('couponCodeText');
+    if (!el) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+  }
+
+  const couponCpf = document.getElementById('couponCpf');
+  if (couponCpf) {
+    couponCpf.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+      e.target.value = v;
+    });
+  }
+
   document.querySelectorAll('.bar-fill').forEach(el=>{
   const w = el.dataset.width || 0;
   el.style.width = w + "%";
