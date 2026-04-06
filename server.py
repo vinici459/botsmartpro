@@ -1544,9 +1544,9 @@ def renovar_aplicar_cupom(
 
     now = datetime.datetime.utcnow()
     if user.trial_until and user.trial_until > now:
-        user.trial_until = user.trial_until + datetime.timedelta(days=20)
+        user.trial_until = user.trial_until + datetime.timedelta(days=10)
     else:
-        user.trial_until = now + datetime.timedelta(days=20)
+        user.trial_until = now + datetime.timedelta(days=10)
 
     user.coupon_code_used = coupon.coupon_code
     user.coupon_used_at = now

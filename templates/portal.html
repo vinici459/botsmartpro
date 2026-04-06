@@ -380,6 +380,65 @@ a{color:inherit}
   filter:saturate(1.04) contrast(1.03);
 }
 
+.promo-slide{
+  text-decoration:none;
+  cursor:pointer;
+}
+
+.promo-slide img{
+  animation:promoZoom 15s ease-in-out forwards;
+  object-fit:cover;
+  object-position:center;
+  filter:saturate(1.08) contrast(1.04);
+}
+
+.promo-glow{
+  background:
+    radial-gradient(circle at 25% 70%, rgba(59,130,246,.18), transparent 24%),
+    radial-gradient(circle at 75% 35%, rgba(236,72,153,.18), transparent 24%),
+    radial-gradient(circle at center, rgba(255,255,255,.06), transparent 38%);
+  animation:promoGlow 4s ease-in-out infinite;
+}
+
+.promo-shine{
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+  transform:translateX(-120%);
+  animation:promoShine 3.8s linear infinite;
+}
+
+.slider-dots .dot{
+  width:10px;
+  height:10px;
+  border:none;
+  padding:0;
+  cursor:pointer;
+  border-radius:999px;
+  background:rgba(255,255,255,.18);
+  box-shadow:0 0 0 1px rgba(255,255,255,.07);
+  transition:transform .25s ease, background .25s ease, box-shadow .25s ease, opacity .25s ease;
+}
+
+.slider-dots .dot:hover{
+  opacity:.92;
+  transform:scale(1.08);
+}
+
+@keyframes promoZoom{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.03)}
+  100%{transform:scale(1.05)}
+}
+
+@keyframes promoGlow{
+  0%,100%{opacity:.35}
+  50%{opacity:.75}
+}
+
+@keyframes promoShine{
+  0%{transform:translateX(-120%)}
+  100%{transform:translateX(120%)}
+}
+
 .vote-slide::before{
   content:"";
   position:absolute;
@@ -751,6 +810,12 @@ a{color:inherit}
               <span class="fx bot-spark"></span>
             </div>
 
+            <a href="https://instagram.com/SEUUSUARIO" class="slide promo-slide" data-time="15000" aria-label="Seguir no Instagram">
+              <img src="/static/instagram-10dias.png" alt="Campanha Instagram e Telegram do Bot Smart Pro">
+              <span class="fx promo-glow"></span>
+              <span class="fx promo-shine"></span>
+            </a>
+
             <a href="/votacao" class="slide vote-slide" data-time="10" aria-label="Ir para a página de votação">
               <video autoplay loop muted playsinline>
                 <source src="/static/votacao-banner1.mp4" type="video/mp4">
@@ -769,10 +834,11 @@ a{color:inherit}
             </div>
           </div>
 
-          <div class="slider-dots" aria-hidden="true">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
+          <div class="slider-dots" aria-label="Navegação do slider">
+            <button class="dot active" type="button" aria-label="Ir para imagem 1"></button>
+            <button class="dot" type="button" aria-label="Ir para imagem 2"></button>
+            <button class="dot" type="button" aria-label="Ir para imagem 3"></button>
+            <button class="dot" type="button" aria-label="Ir para imagem 4"></button>
           </div>
         </div>
       </div>
@@ -866,24 +932,51 @@ a{color:inherit}
   let index = 0;
   let timer = null;
 
-  function activate(i){
+  function restartTimer(i){
+    clearTimeout(timer);
+    const delay = parseInt(slides[i].dataset.time || '5000', 10);
+    timer = setTimeout(() => {
+      goToSlide((i + 1) % slides.length);
+    }, delay);
+  }
+
+  function goToSlide(i){
+    index = i;
+
     slides.forEach((slide, idx) => {
       slide.classList.toggle('active', idx === i);
+
+      const video = slide.querySelector('video');
+      if (video) {
+        if (idx === i) {
+          try {
+            video.currentTime = 0;
+            video.play();
+          } catch(e) {}
+        } else {
+          try {
+            video.pause();
+          } catch(e) {}
+        }
+      }
     });
 
     dots.forEach((dot, idx) => {
       dot.classList.toggle('active', idx === i);
     });
 
-    clearTimeout(timer);
-    const delay = parseInt(slides[i].dataset.time || '5000', 10);
-    timer = setTimeout(() => {
-      index = (i + 1) % slides.length;
-      activate(index);
-    }, delay);
+    restartTimer(i);
   }
 
-  activate(index);
+  // 👇 FAZ AS BOLINHAS FUNCIONAREM
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      goToSlide(i);
+    });
+  });
+
+  // inicia
+  goToSlide(0);
 })();
 </script>
 </body>
