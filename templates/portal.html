@@ -810,7 +810,13 @@ a{color:inherit}
               <span class="fx bot-spark"></span>
             </div>
 
-            <a href="https://www.instagram.com/botsmartproofc/" class="slide promo-slide" data-time="15000" aria-label="Seguir no Instagram">
+            <a href="https://www.instagram.com/botsmartproofc/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="slide promo-slide" 
+              data-time="15000" 
+              aria-label="Seguir no Instagram">
+              
               <img src="/static/instagram-10dias.png" alt="Campanha Instagram e Telegram do Bot Smart Pro">
               <span class="fx promo-glow"></span>
               <span class="fx promo-shine"></span>
@@ -925,7 +931,7 @@ a{color:inherit}
   </div>
 <script>
 (function(){
-  const slides = Array.from(document.querySelectorAll('#slider .slide'));
+  const slides = Array.from(document.querySelectorAll('#slider .slide:not(.vote-slide)'));
   const dots = Array.from(document.querySelectorAll('.slider-dots .dot'));
   if (!slides.length) return;
 
