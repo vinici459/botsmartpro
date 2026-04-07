@@ -598,7 +598,7 @@
         <input type="hidden" name="view_token" value="{{ view_token or '' }}">
         <div>
           <input id="couponCpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="Digite seu CPF para resgatar" value="{{ coupon_cpf or '' }}" required>
-          <div class="field-help">Cada CPF pode resgatar apenas um cupom.</div>
+          <div class="field-help">Cada CPF pode resgatar apenas um cupom. Você precisa ter uma conta cadastrada.</div>
         </div>
         <button class="btn blue" type="submit">Resgatar cupom</button>
       </form>
