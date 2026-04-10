@@ -158,6 +158,13 @@
       object-fit: cover;
     }
 
+    .visual-card video {
+      display: block;
+      width: 100%;
+      height: 620px;
+      object-fit: cover;
+    }
+
     .content {
       margin-top: 18px;
       padding: 6px 2px 2px;
@@ -450,6 +457,7 @@
       .hero-title { padding: 8px 16px 4px; }
       .side { padding: 16px; }
       .visual-card img { height: 430px; }
+      .visual-card video { height: 430px; }
       .footer-note { padding: 0 16px 16px; }
       input[type="text"] { font-size: 26px; }
       .qr { max-width: 240px; }
@@ -488,7 +496,9 @@
         <section class="side blue">
           <div>
             <div class="visual-card">
-              <img src="/static/azul.png" alt="Flávio Bolsonaro no lado azul" />
+              <video autoplay loop muted playsinline>
+                <source src="/static/azul.mp4" type="video/mp4">
+              </video>
             </div>
 
             <div class="content">
@@ -544,7 +554,9 @@
         <section class="side red">
           <div>
             <div class="visual-card">
-              <img src="/static/vermelho.png" alt="Lula no lado vermelho" />
+              <video autoplay loop muted playsinline>
+                <source src="/static/vermelho.mp4" type="video/mp4">
+              </video>
             </div>
 
             <div class="content">
