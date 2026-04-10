@@ -370,8 +370,7 @@ a{color:inherit}
 
 .vote-slide{
   text-decoration:none;
-  cursor:pointer;
-  display:none !important;
+  cursor:pointer;  
 }
 
 
@@ -803,6 +802,8 @@ a{color:inherit}
       <div class="hero-visual">
         <div class="visual-shell">
           <div id="slider" class="slider">
+
+            <!-- 1️⃣ LOGO -->
             <div class="slide bot-slide active" data-time="15000">
               <img src="/static/smart_pro_hero.png" alt="Arte futurista do Bot Smart Pro">
               <span class="fx bot-ring"></span>
@@ -810,19 +811,8 @@ a{color:inherit}
               <span class="fx bot-spark"></span>
             </div>
 
-            <a href="https://www.instagram.com/botsmartproofc/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              class="slide promo-slide" 
-              data-time="15000" 
-              aria-label="Seguir no Instagram">
-              
-              <img src="/static/instagram-10dias.png" alt="Campanha Instagram e Telegram do Bot Smart Pro">
-              <span class="fx promo-glow"></span>
-              <span class="fx promo-shine"></span>
-            </a>
-
-            <a href="/votacao" class="slide vote-slide" data-time="10" aria-label="Ir para a página de votação">
+            <!-- 2️⃣ VOTAÇÃO (AGORA ATIVA) -->
+            <a href="/votacao" class="slide vote-slide" data-time="15000" aria-label="Ir para a página de votação">
               <video autoplay loop muted playsinline>
                 <source src="/static/votacao-banner1.mp4" type="video/mp4">
               </video>
@@ -835,16 +825,32 @@ a{color:inherit}
               </div>
             </a>
 
+            <!-- 3️⃣ INSTAGRAM -->
+            <a href="https://www.instagram.com/botsmartproofc/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="slide promo-slide" 
+              data-time="15000" 
+              aria-label="Seguir no Instagram">
+              
+              <img src="/static/instagram-10dias.png" alt="Campanha Instagram e Telegram do Bot Smart Pro">
+              <span class="fx promo-glow"></span>
+              <span class="fx promo-shine"></span>
+            </a>
+
+            <!-- 4️⃣ BINANCE -->
             <div class="slide binance-slide" data-time="15000">
               <img src="/static/binance-banner.png" alt="Banner Binance do Bot Smart Pro">
             </div>
+
           </div>
 
+          <!-- DOTS -->
           <div class="slider-dots" aria-label="Navegação do slider">
-            <button class="dot active" type="button" aria-label="Ir para imagem 1"></button>
-            <button class="dot" type="button" aria-label="Ir para imagem 2"></button>
-            <button class="dot" type="button" aria-label="Ir para imagem 3"></button>
-            <button class="dot" type="button" aria-label="Ir para imagem 4"></button>
+            <button class="dot active" type="button"></button>
+            <button class="dot" type="button"></button>
+            <button class="dot" type="button"></button>
+            <button class="dot" type="button"></button>
           </div>
         </div>
       </div>
@@ -931,7 +937,7 @@ a{color:inherit}
   </div>
 <script>
 (function(){
-  const slides = Array.from(document.querySelectorAll('#slider .slide:not(.vote-slide)'));
+  const slides = Array.from(document.querySelectorAll('#slider .slide'));
   const dots = Array.from(document.querySelectorAll('.slider-dots .dot'));
   if (!slides.length) return;
 
