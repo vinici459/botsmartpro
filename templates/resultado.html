@@ -423,6 +423,24 @@
       color:#bbf7d0;
       border-color:rgba(34,197,94,.24);
     }
+    
+    .signup-link {
+      margin-top: 10px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .signup-link a {
+      color: #22c55e;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .signup-link a:hover {
+      text-decoration: underline;
+    }
+
 
     @media (max-width: 960px){
       .cards{grid-template-columns:1fr}
@@ -584,7 +602,10 @@
 
     <section class="coupon-panel">
       <h3>Resgatar cupom promocional</h3>
-      <p>Digite seu CPF e gere um cupom pessoal para ganhar +10 dias para continuar usando o bot smart pro, somente 1 codigo será gerado por CPF.</p>
+      <p>
+        Digite seu CPF e gere um cupom pessoal para ganhar +10 dias para continuar usando o bot Smart Pro. 
+        Somente 1 código será gerado por CPF.
+      </p>
 
       {% if coupon_error %}
         <div class="alert error">{{ coupon_error }}</div>
@@ -596,22 +617,50 @@
 
       <form class="coupon-form" action="/resultado/resgatar-cupom" method="post">
         <input type="hidden" name="view_token" value="{{ view_token or '' }}">
+        
         <div>
-          <input id="couponCpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="Digite seu CPF para resgatar" value="{{ coupon_cpf or '' }}" required>
-          <div class="field-help">Cada CPF pode resgatar apenas um cupom. Você precisa ter uma conta cadastrada.</div>
+          <input id="couponCpf" name="cpf" type="text" inputmode="numeric" maxlength="14"
+            placeholder="Digite seu CPF para resgatar"
+            value="{{ coupon_cpf or '' }}" required>
+
+          <div class="field-help">
+            Cada CPF pode resgatar apenas um cupom. Você precisa ter uma conta cadastrada.
+          </div>
+
+          <!-- 🔥 NOVO LINK AQUI -->
+          <p class="signup-link">
+            Ainda não tem conta cadastrada?
+            <a href="/cadastro" target="_blank" rel="noopener noreferrer">
+              Clique aqui para criar
+            </a>
+          </p>
+
         </div>
+
         <button class="btn blue" type="submit">Resgatar cupom</button>
       </form>
 
       {% if coupon_code %}
         <div class="coupon-code-box">
           <div>Seu código foi gerado. Copie e guarde agora:</div>
-          <div class="coupon-code" id="couponCodeText">{{ coupon_code }}</div>
-          <div class="links" style="margin-top:14px;">
-            <button class="btn blue" type="button" onclick="copyCouponCode()">Copiar código</button>
-            <a class="btn red" href="/renovar?cpf={{ coupon_cpf or '' }}">Ir para renovação</a>
+          
+          <div class="coupon-code" id="couponCodeText">
+            {{ coupon_code }}
           </div>
-          <div class="field-help">Importante: este código não será mostrado novamente depois que você sair desta tela.</div>
+
+          <div class="links" style="margin-top:14px;">
+            <button class="btn blue" type="button" onclick="copyCouponCode()">
+              Copiar código
+            </button>
+
+            <a class="btn red" href="/renovar?cpf={{ coupon_cpf or '' }}">
+              Ir para renovação
+            </a>
+          </div>
+
+          <div class="field-help">
+            Importante: este código não será mostrado novamente depois que você sair desta tela.
+          </div>
         </div>
       {% endif %}
     </section>
@@ -619,7 +668,6 @@
     <div class="footer">
       Atualização automática habilitada
     </div>
-  </div>
 
   <script>
   function copyCouponCode() {
